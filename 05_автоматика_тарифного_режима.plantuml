@@ -1,0 +1,118 @@
+@startuml TariffAutomation
+
+title Автоматика дневного и ночного тарифа
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam noteBackgroundColor #FFF7D6
+skinparam noteBorderColor #8A6D1D
+
+package "Источники 220 В" as Sources {
+  component "РЭС" as Grid #FFF2B2
+  component "Бензогенератор" as Generator #FFF2B2
+  component "АВР №1\nGEYA W2R-100 II\nРЭС / БГ" as ATS1 #FFD9A8
+}
+
+package "Тарифная автоматика входа ИБП" as Tariff {
+  component "Wi-Fi автомат C25\n23:00 ON\n07:00 OFF" as WifiMCB #D8F3F1
+  component "Source A\nплановая ночная сеть" as SourceA #D9F2D9
+
+  component "Реле контроля UАКБ\nU< = 12,1 В / 60 с\nвозврат 14,2 В / 300 с" as UVRelay #E8D9F7
+  component "K2\nконтактор 2P 25–40 А\nкатушка 230 В" as K2 #FFD6D6
+  component "Source B\nаварийная дневная сеть" as SourceB #FFD6D6
+
+  component "АВР №2\nGEYA W2R-100 II\nSource A / Source B" as ATS2 #FFD9A8
+  component "Автомат 2P C20" as UPSBreaker #FFD6D6
+}
+
+package "ИБП и аккумуляторная шина" as Power {
+  component "ИБПС-12-3500\nAC INPUT" as UPS #CFC7F8
+  component "Общие DC-шины\n12 В" as DCBus #FFE7A8
+  component "2 × VRC 12-200\n12 В 400 А·ч" as Batteries #D9EAF7
+}
+
+package "Регулируемые зарядники" as Chargers {
+  component "Зарядник №1\nдневная поддержка\n12,50 В / 30–60 А" as SupportCharger #D8F3F1
+  component "DC-предохранитель\n70–80 А" as SupportFuse #FFD6D6
+
+  component "Зарядник №2\nночной заряд\n14,40 В / 30 А" as NightCharger #D8F3F1
+  component "DC-предохранитель\n40 А" as NightFuse #FFD6D6
+}
+
+component "PE-шина" as PE #CDEFCB
+
+Grid --> ATS1
+Generator --> ATS1
+
+ATS1 --> WifiMCB : общая линия РЭС/БГ
+WifiMCB --> SourceA
+SourceA --> ATS2
+
+ATS1 --> K2 : силовое питание
+UVRelay --> K2 : авария UАКБ\nили отказ реле
+K2 --> SourceB
+SourceB --> ATS2
+
+ATS2 --> UPSBreaker
+UPSBreaker --> UPS
+
+Batteries --> DCBus
+DCBus --> UPS : короткая DC-линия\nбез дополнительных выключателей
+DCBus --> UVRelay : измерение через\nпредохранитель 0,5–1 А
+
+ATS1 --> SupportCharger : AC постоянно
+SupportCharger --> SupportFuse
+SupportFuse --> DCBus
+
+WifiMCB --> NightCharger : AC только ночью
+NightCharger --> NightFuse
+NightFuse --> DCBus
+
+PE --> UPS
+PE --> ATS1
+PE --> ATS2
+
+note right of UVRelay
+Fail-safe:
+при U < 12,1 В более 60 с
+или при потере питания реле
+контакт включает K2.
+
+K2 отключается только после
+U > 14,2 В в течение 300 с.
+end note
+
+note bottom of SupportCharger
+Днём источник 12,5 В
+плавно компенсирует дефицит.
+Начать с 30 А, после испытаний
+допускается повышение до 60 А.
+end note
+
+note bottom of NightCharger
+В 23:00 Wi-Fi автомат включает
+Source A и ночной зарядник.
+Напряжение 14,4 В сбрасывает
+дневную аварийную фиксацию.
+end note
+
+note right of ATS2
+Оба входа питаются от одной
+линии после АВР №1.
+АВР №2 реализует аппаратное ИЛИ
+без параллельного соединения ветвей.
+end note
+
+legend right
+  |= Состояние |= Source A |= Source B |= Вход ИБП |
+  | Ночь | ON | обычно OFF | сеть |
+  | День, норма | OFF | OFF | отключён |
+  | День, U < 12,1 В | OFF | ON | сеть |
+  | Нет РЭС и БГ | OFF | запрос возможен | отсутствует |
+endlegend
+
+@enduml
