@@ -14,12 +14,13 @@ skinparam noteBorderColor #8A6D1D
 
 package "Под шкафом: аккумуляторная и силовая часть" as BatteryZone {
   component "АКБ №1\n12 В 200 А·ч" as B1 #D9EAF7
-  component "F1\nDC-предохранитель\nноминал TBD" as F1 #FFD6D6
+  component "F1\nMRBF 200 А\n≥ 58 В DC" as F1 #FFD6D6
   component "АКБ №2\n12 В 200 А·ч" as B2 #D9EAF7
-  component "F2\nDC-предохранитель\nноминал TBD" as F2 #FFD6D6
+  component "F2\nMRBF 200 А\n≥ 58 В DC" as F2 #FFD6D6
 
   component "Положительный\nсиловой узел\nзакрытая шпилька" as PlusBus #FFE7A8
   component "Отрицательный\nсиловой узел" as MinusBus #D9D9D9
+
   component "Предохранитель\nконтура 12 В" as LightFuse #FFD6D6
   component "Защита от\nглубокого разряда" as LVD #E8D9F7
   component "Распределитель\nосвещения 12 В" as LightDist #D9F2D9
@@ -130,18 +131,16 @@ note right of UPS
 end note
 
 note bottom of F1
-F1/F2 защищают внешние
-аккумуляторные кабели.
-Внутренние предохранители ИБП
-не заменяют эту защиту.
+F1/F2 = MRBF 200 А.
+Защищают внешние кабели.
+Штатные держатели у плюсов АКБ.
+Между шиной и ИБП
+нет отдельного выключателя.
 end note
 
 note bottom of PlusBus
 Плюсовой узел и шпильки
 обязательно закрыть кожухом.
-Между шиной и ИБП нет
-отдельного DC-выключателя:
-минимум контактов и потерь.
 end note
 
 legend right
