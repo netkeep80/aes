@@ -1,40 +1,131 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="960" viewBox="0 0 1400 960">
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050">
   <defs>
     <style>
-      .title{font:700 28px Arial,sans-serif;fill:#1b1b1b}.head{font:700 18px Arial,sans-serif;fill:#1b1b1b}.txt{font:15px Arial,sans-serif;fill:#1b1b1b}.small{font:13px Arial,sans-serif;fill:#1b1b1b}.box{stroke:#333;stroke-width:2;rx:10;ry:10}.wire{stroke:#333;stroke-width:3;fill:none;marker-end:url(#arrow)}.wire2{stroke:#333;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.note{fill:#fff7d6;stroke:#8a6d1d;stroke-width:2;rx:8;ry:8}
+      .title{font:700 30px DejaVu Sans,sans-serif;fill:#202124}
+      .section{font:700 20px DejaVu Sans,sans-serif;fill:#202124}
+      .text{font:16px DejaVu Sans,sans-serif;fill:#202124}
+      .small{font:14px DejaVu Sans,sans-serif;fill:#202124}
+      .box{stroke:#404040;stroke-width:2;rx:12;ry:12}
+      .wire{fill:none;stroke:#404040;stroke-width:4;marker-end:url(#arrow)}
+      .thin{fill:none;stroke:#606060;stroke-width:2.5;marker-end:url(#arrow)}
+      .dash{fill:none;stroke:#606060;stroke-width:2.5;stroke-dasharray:9 7}
     </style>
-    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,4 L0,8 z" fill="#333"/></marker>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#404040"/>
+    </marker>
   </defs>
-  <rect width="1400" height="960" fill="#fff"/>
-  <text x="700" y="42" text-anchor="middle" class="title">Переделка 12-вольтовой солнечной станции с ИБПС-12-3500</text>
-  <rect x="30" y="80" width="720" height="500" fill="#fafafa" stroke="#555" stroke-width="2" rx="14"/>
-  <text x="390" y="110" text-anchor="middle" class="head">Под шкафом: аккумуляторы и силовые узлы</text>
-  <rect x="65" y="150" width="190" height="80" class="box" fill="#d9eaf7"/><text x="160" y="180" text-anchor="middle" class="head">VRC 12-200 №1</text><text x="160" y="205" text-anchor="middle" class="txt">12 В, 200 А·ч, М8</text>
-  <rect x="65" y="360" width="190" height="80" class="box" fill="#d9eaf7"/><text x="160" y="390" text-anchor="middle" class="head">VRC 12-200 №2</text><text x="160" y="415" text-anchor="middle" class="txt">12 В, 200 А·ч, М8</text>
-  <rect x="315" y="150" width="150" height="80" class="box" fill="#ffd6d6"/><text x="390" y="180" text-anchor="middle" class="head">F1</text><text x="390" y="205" text-anchor="middle" class="txt">DC-предохранитель</text>
-  <rect x="315" y="360" width="150" height="80" class="box" fill="#ffd6d6"/><text x="390" y="390" text-anchor="middle" class="head">F2</text><text x="390" y="415" text-anchor="middle" class="txt">DC-предохранитель</text>
-  <rect x="530" y="210" width="180" height="90" class="box" fill="#ffe7a8"/><text x="620" y="240" text-anchor="middle" class="head">Положительная</text><text x="620" y="264" text-anchor="middle" class="head">силовая шина</text><text x="620" y="287" text-anchor="middle" class="small">под защитным кожухом</text>
-  <rect x="530" y="390" width="180" height="80" class="box" fill="#d9d9d9"/><text x="620" y="420" text-anchor="middle" class="head">Отрицательная</text><text x="620" y="444" text-anchor="middle" class="head">силовая шина</text>
-  <path d="M255 175 H315" class="wire"/><path d="M465 190 H500 V240 H530" class="wire"/><path d="M255 385 H315" class="wire"/><path d="M465 400 H500 V270 H530" class="wire"/>
-  <path d="M255 215 H285 V430 H530" class="wire"/><path d="M255 425 H530" class="wire"/>
-  <text x="290" y="145" class="small">плюс</text><text x="290" y="350" class="small">плюс</text><text x="285" y="245" class="small">минус</text>
-  <rect x="800" y="80" width="560" height="500" fill="#fafafa" stroke="#555" stroke-width="2" rx="14"/>
-  <text x="1080" y="110" text-anchor="middle" class="head">Металлический шкаф в подполе</text>
-  <rect x="930" y="205" width="300" height="180" class="box" fill="#cfc7f8"/><text x="1080" y="250" text-anchor="middle" class="head">СибКонтакт ИБПС-12-3500</text><text x="1080" y="280" text-anchor="middle" class="txt">12 В → 220 В, 3500 Вт</text><text x="1080" y="310" text-anchor="middle" class="txt">клеммы М6, монтаж клеммами вверх</text><text x="1080" y="340" text-anchor="middle" class="txt">открытое дно, свободная вентиляция</text>
-  <path d="M710 245 H820 V255 H930" class="wire"/><path d="M710 430 H850 V335 H930" class="wire"/>
-  <text x="810" y="228" text-anchor="middle" class="head">35–50 мм², ≤ 0,5 м</text><text x="810" y="250" text-anchor="middle" class="small">один цельный провод «+»</text><text x="805" y="415" text-anchor="middle" class="small">один цельный провод «−»</text>
-  <rect x="825" y="430" width="500" height="105" class="note"/><text x="1075" y="460" text-anchor="middle" class="head">Между шинами и ИБП нет отдельного DC-выключателя</text><text x="1075" y="488" text-anchor="middle" class="txt">Минимум последовательно включённых контактов, падения напряжения и нагрева.</text><text x="1075" y="516" text-anchor="middle" class="txt">F1/F2 снимаются только после полного отключения источников и нагрузок.</text>
-  <rect x="30" y="620" width="1330" height="290" fill="#fafafa" stroke="#555" stroke-width="2" rx="14"/>
-  <text x="695" y="652" text-anchor="middle" class="head">Зарядные источники, 12-вольтовые и 220-вольтовые нагрузки</text>
-  <rect x="65" y="700" width="180" height="70" class="box" fill="#cdefcb"/><text x="155" y="728" text-anchor="middle" class="head">Солнечные панели</text><text x="155" y="752" text-anchor="middle" class="txt">до 1200 Вт</text>
-  <rect x="300" y="680" width="160" height="70" class="box" fill="#ffd9a8"/><text x="380" y="710" text-anchor="middle" class="head">MPPT 30 А</text><text x="380" y="735" text-anchor="middle" class="small">с DC-защитой</text>
-  <rect x="300" y="785" width="160" height="70" class="box" fill="#ffd9a8"/><text x="380" y="815" text-anchor="middle" class="head">MPPT 40 А</text><text x="380" y="840" text-anchor="middle" class="small">с DC-защитой</text>
-  <rect x="525" y="680" width="170" height="70" class="box" fill="#d8f3f1"/><text x="610" y="710" text-anchor="middle" class="head">Зарядник №1</text><text x="610" y="735" text-anchor="middle" class="txt">ограничен до 30 А</text>
-  <rect x="525" y="785" width="170" height="70" class="box" fill="#d8f3f1"/><text x="610" y="815" text-anchor="middle" class="head">Зарядник №2</text><text x="610" y="840" text-anchor="middle" class="txt">ограничен до 30 А</text>
-  <rect x="760" y="680" width="190" height="70" class="box" fill="#e8d9f7"/><text x="855" y="710" text-anchor="middle" class="head">Освещение 12 В</text><text x="855" y="735" text-anchor="middle" class="small">предохранитель + LVD</text>
-  <rect x="760" y="785" width="190" height="70" class="box" fill="#fff2b2"/><text x="855" y="815" text-anchor="middle" class="head">РЭС / генератор</text><text x="855" y="840" text-anchor="middle" class="small">через АВР</text>
-  <rect x="1015" y="680" width="290" height="70" class="box" fill="#d9f2d9"/><text x="1160" y="710" text-anchor="middle" class="head">Критичные нагрузки 220 В</text><text x="1160" y="735" text-anchor="middle" class="small">насосы, холодильник, компрессор, розетки</text>
-  <rect x="1015" y="785" width="290" height="70" class="box" fill="#fff7d6"/><text x="1160" y="813" text-anchor="middle" class="head">ВЧ-конденсаторы</text><text x="1160" y="838" text-anchor="middle" class="small">только после измерений, рядом с ИБП</text>
-  <path d="M245 735 H300" class="wire2"/><path d="M245 735 H270 V820 H300" class="wire2"/><path d="M460 715 H485 V610 H620 V470" class="wire2"/><path d="M460 820 H495 V600 H620 V470" class="wire2"/><path d="M695 715 H720 V590 H620 V470" class="wire2"/><path d="M695 820 H730 V580 H620 V470" class="wire2"/><path d="M710 275 H745 V715 H760" class="wire2"/><path d="M950 820 H980 V295 H930" class="wire2"/><path d="M1230 295 H1270 V680" class="wire2"/><path d="M1015 820 H990 V350 H930" class="wire2"/>
-  <text x="700" y="935" text-anchor="middle" class="small">F1/F2 — обязательная защита внешних аккумуляторных кабелей; точный номинал определяется после выбора кабелей и времятоковой характеристики.</text>
+
+  <rect width="1600" height="1050" fill="#fff"/>
+  <text x="800" y="50" text-anchor="middle" class="title">Переделка 12-вольтовой солнечной станции с ИБПС-12-3500</text>
+
+  <rect x="40" y="90" width="1520" height="360" fill="#fafafa" stroke="#777" stroke-width="2" rx="16"/>
+  <text x="65" y="125" class="section">Аккумуляторная и силовая часть под шкафом</text>
+
+  <rect class="box" x="80" y="165" width="220" height="95" fill="#d9eaf7"/>
+  <text x="190" y="200" text-anchor="middle" class="text">VEKTOR VRC 12-200 №1</text>
+  <text x="190" y="230" text-anchor="middle" class="text">12 В, 200 А·ч</text>
+
+  <rect class="box" x="80" y="315" width="220" height="95" fill="#d9eaf7"/>
+  <text x="190" y="350" text-anchor="middle" class="text">VEKTOR VRC 12-200 №2</text>
+  <text x="190" y="380" text-anchor="middle" class="text">12 В, 200 А·ч</text>
+
+  <rect class="box" x="370" y="165" width="210" height="95" fill="#ffd6d6"/>
+  <text x="475" y="195" text-anchor="middle" class="text">F1 — MRBF 200 А</text>
+  <text x="475" y="224" text-anchor="middle" class="small">не ниже 58 В DC</text>
+  <text x="475" y="246" text-anchor="middle" class="small">штатный держатель у АКБ</text>
+
+  <rect class="box" x="370" y="315" width="210" height="95" fill="#ffd6d6"/>
+  <text x="475" y="345" text-anchor="middle" class="text">F2 — MRBF 200 А</text>
+  <text x="475" y="374" text-anchor="middle" class="small">не ниже 58 В DC</text>
+  <text x="475" y="396" text-anchor="middle" class="small">штатный держатель у АКБ</text>
+
+  <rect class="box" x="675" y="180" width="230" height="90" fill="#ffe7a8"/>
+  <text x="790" y="215" text-anchor="middle" class="text">Положительная шина</text>
+  <text x="790" y="244" text-anchor="middle" class="small">под защитным кожухом</text>
+
+  <rect class="box" x="675" y="315" width="230" height="80" fill="#d9d9d9"/>
+  <text x="790" y="363" text-anchor="middle" class="text">Отрицательная шина</text>
+
+  <rect class="box" x="1060" y="190" width="250" height="130" fill="#cfc7f8"/>
+  <text x="1185" y="230" text-anchor="middle" class="section">ИБПС-12-3500</text>
+  <text x="1185" y="262" text-anchor="middle" class="text">12 В → 220 В, 3500 Вт</text>
+  <text x="1185" y="292" text-anchor="middle" class="small">одна короткая пара 35–50 мм²</text>
+
+  <path class="wire" d="M300 212 H370"/>
+  <path class="wire" d="M580 212 H675"/>
+  <path class="wire" d="M300 362 H370"/>
+  <path class="wire" d="M580 362 H630 V235 H675"/>
+  <path class="wire" d="M300 235 V355 H675"/>
+  <path class="wire" d="M300 385 H675"/>
+  <path class="wire" d="M905 225 H1060"/>
+  <path class="wire" d="M905 355 H1010 V290 H1060"/>
+
+  <text x="980" y="205" text-anchor="middle" class="small">≤ 0,5 м</text>
+  <text x="980" y="225" text-anchor="middle" class="small">без отдельного выключателя</text>
+
+  <rect x="40" y="480" width="730" height="500" fill="#fafafa" stroke="#777" stroke-width="2" rx="16"/>
+  <text x="65" y="518" class="section">Зарядные источники и 12-вольтовые нагрузки</text>
+
+  <rect class="box" x="90" y="565" width="210" height="75" fill="#cdefcb"/>
+  <text x="195" y="598" text-anchor="middle" class="text">Солнечные панели</text>
+  <text x="195" y="623" text-anchor="middle" class="small">до 1200 Вт</text>
+
+  <rect class="box" x="380" y="540" width="190" height="70" fill="#ffd9a8"/>
+  <text x="475" y="582" text-anchor="middle" class="text">MPPT 30 А</text>
+  <rect class="box" x="380" y="635" width="190" height="70" fill="#ffd9a8"/>
+  <text x="475" y="677" text-anchor="middle" class="text">MPPT 40 А</text>
+
+  <rect class="box" x="90" y="750" width="210" height="70" fill="#d8f3f1"/>
+  <text x="195" y="792" text-anchor="middle" class="text">Зарядник №1 — 30 А</text>
+  <rect class="box" x="90" y="850" width="210" height="70" fill="#d8f3f1"/>
+  <text x="195" y="892" text-anchor="middle" class="text">Зарядник №2 — 30 А</text>
+
+  <rect class="box" x="470" y="785" width="240" height="105" fill="#d9f2d9"/>
+  <text x="590" y="820" text-anchor="middle" class="text">Освещение 12 В</text>
+  <text x="590" y="850" text-anchor="middle" class="small">предохранитель + защита</text>
+  <text x="590" y="872" text-anchor="middle" class="small">от глубокого разряда</text>
+
+  <path class="thin" d="M300 602 H380"/>
+  <path class="thin" d="M300 615 H340 V670 H380"/>
+  <path class="thin" d="M570 575 H660 V450"/>
+  <path class="thin" d="M570 670 H640 V450"/>
+  <path class="thin" d="M300 785 H420 V450"/>
+  <path class="thin" d="M300 885 H440 V450"/>
+  <path class="thin" d="M590 785 V450"/>
+
+  <rect x="810" y="480" width="750" height="500" fill="#fafafa" stroke="#777" stroke-width="2" rx="16"/>
+  <text x="835" y="518" class="section">Переменный ток 220 В</text>
+
+  <rect class="box" x="860" y="575" width="150" height="70" fill="#fff2b2"/>
+  <text x="935" y="617" text-anchor="middle" class="text">РЭС</text>
+  <rect class="box" x="860" y="710" width="150" height="70" fill="#fff2b2"/>
+  <text x="935" y="752" text-anchor="middle" class="text">Бензогенератор</text>
+
+  <rect class="box" x="1090" y="635" width="170" height="90" fill="#ffd9a8"/>
+  <text x="1175" y="674" text-anchor="middle" class="text">АВР</text>
+  <text x="1175" y="700" text-anchor="middle" class="small">РЭС / БГ</text>
+
+  <rect class="box" x="1340" y="565" width="170" height="80" fill="#ffd6d6"/>
+  <text x="1425" y="598" text-anchor="middle" class="small">Входной 2P</text>
+  <text x="1425" y="622" text-anchor="middle" class="small">автомат ИБП</text>
+
+  <rect class="box" x="1340" y="730" width="170" height="80" fill="#ffd6d6"/>
+  <text x="1425" y="763" text-anchor="middle" class="small">Выходной 2P</text>
+  <text x="1425" y="787" text-anchor="middle" class="small">автомат ИБП</text>
+
+  <rect class="box" x="1080" y="845" width="220" height="90" fill="#d9f2d9"/>
+  <text x="1190" y="884" text-anchor="middle" class="text">Критичные нагрузки</text>
+  <text x="1190" y="910" text-anchor="middle" class="small">насосы, холодильник, розетки</text>
+
+  <path class="thin" d="M1010 610 H1090 V665"/>
+  <path class="thin" d="M1010 745 H1090 V695"/>
+  <path class="thin" d="M1260 665 H1340"/>
+  <path class="dash" d="M1425 645 V730"/>
+  <path class="thin" d="M1340 770 H1300 V845"/>
+
+  <rect x="845" y="865" width="190" height="75" fill="#fff7d6" stroke="#8a6d1d" stroke-width="2" rx="10"/>
+  <text x="940" y="894" text-anchor="middle" class="small">Внешние зарядники</text>
+  <text x="940" y="917" text-anchor="middle" class="small">питаются до входа ИБП</text>
+
+  <text x="800" y="1025" text-anchor="middle" class="small">F1/F2 защищают внешние батарейные кабели. Внутренние предохранители ИБП не заменяют эту защиту.</text>
 </svg>
