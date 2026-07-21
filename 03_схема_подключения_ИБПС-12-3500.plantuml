@@ -1,0 +1,158 @@
+@startuml SolarStation_IBPS_12_3500
+title Переделка 12-вольтовой солнечной станции с ИБПС-12-3500
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 35
+skinparam ranksep 45
+skinparam defaultTextAlignment center
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam noteBackgroundColor #FFF7D6
+skinparam noteBorderColor #8A6D1D
+
+package "Под шкафом: аккумуляторная и силовая часть" as BatteryZone {
+  component "АКБ №1\n12 В 200 А·ч" as B1 #D9EAF7
+  component "F1\nDC-предохранитель\nноминал TBD" as F1 #FFD6D6
+  component "АКБ №2\n12 В 200 А·ч" as B2 #D9EAF7
+  component "F2\nDC-предохранитель\nноминал TBD" as F2 #FFD6D6
+
+  component "Положительный\nсиловой узел\nзакрытая шпилька" as PlusBus #FFE7A8
+  component "Отрицательный\nсиловой узел" as MinusBus #D9D9D9
+  component "Главный\nDC-выключатель" as MainDC #FFD6D6
+
+  component "Предохранитель\nконтура 12 В" as LightFuse #FFD6D6
+  component "Защита от\nглубокого разряда" as LVD #E8D9F7
+  component "Распределитель\nосвещения 12 В" as LightDist #D9F2D9
+}
+
+package "Металлический шкаф в подполе" as Cabinet {
+  component "ИБПС-12-3500\n12 В → 220 В\n3500 Вт" as UPS #CFC7F8
+  component "ВЧ-конденсаторы\nопционально,\nпосле измерений" as HFCaps #FFF2B2
+  component "Датчик\nтемпературы" as Temp #D8F3F1
+}
+
+package "Первый этаж: солнечные контроллеры" as SolarControl {
+  component "Солнечные панели\nдо 1200 Вт" as PV #CDEFCB
+  component "PV-разъединитель 1" as PVQ1 #FFD6D6
+  component "MPPT 30 А" as MPPT30 #FFD9A8
+  component "DC-предохранитель\nветви MPPT 30 А" as FM30 #FFD6D6
+  component "PV-разъединитель 2" as PVQ2 #FFD6D6
+  component "MPPT 40 А" as MPPT40 #FFD9A8
+  component "DC-предохранитель\nветви MPPT 40 А" as FM40 #FFD6D6
+}
+
+package "Внешняя панель зарядников" as Chargers {
+  component "Зарядник №1\nограничен до 30 А" as Charger1 #D8F3F1
+  component "DC-предохранитель\nзарядника №1" as FC1 #FFD6D6
+  component "Зарядник №2\nограничен до 30 А" as Charger2 #D8F3F1
+  component "DC-предохранитель\nзарядника №2" as FC2 #FFD6D6
+}
+
+package "Переменный ток 220 В" as ACZone {
+  component "РЭС" as Grid #FFF2B2
+  component "Бензогенератор" as Generator #FFF2B2
+  component "АВР\nРЭС / БГ" as ATS #FFD9A8
+  component "Входной\n2P автомат ИБП" as ACInBreaker #FFD6D6
+  component "Выходной\n2P автомат ИБП" as ACOutBreaker #FFD6D6
+  component "Щит критичных\nпотребителей" as CriticalPanel #D9F2D9
+  component "Насосы отопления" as Heating #FFFFFF
+  component "Компрессор\nканализации" as Compressor #FFFFFF
+  component "Холодильник" as Fridge #FFFFFF
+  component "Резервируемые\nрозетки" as Sockets #FFFFFF
+}
+
+component "PE-шина\nзаземление" as PE #CDEFCB
+
+B1 --> F1
+F1 --> PlusBus : одинаковый кабель\n25–35 мм²
+B1 --> MinusBus : одинаковый кабель\n25–35 мм²
+
+B2 --> F2
+F2 --> PlusBus : одинаковый кабель\n25–35 мм²
+B2 --> MinusBus : одинаковый кабель\n25–35 мм²
+
+PlusBus --> MainDC
+MainDC --> UPS : один кабель 35–50 мм²\nдлина ≤ 0,5 м
+MinusBus --> UPS : один кабель 35–50 мм²\nдлина ≤ 0,5 м
+
+PlusBus --> LightFuse
+LightFuse --> LVD
+LVD --> LightDist
+MinusBus --> LightDist : общий минус
+
+PV --> PVQ1
+PVQ1 --> MPPT30
+MPPT30 --> FM30
+FM30 --> PlusBus
+MPPT30 --> MinusBus : минус
+
+PV --> PVQ2
+PVQ2 --> MPPT40
+MPPT40 --> FM40
+FM40 --> PlusBus
+MPPT40 --> MinusBus : минус
+
+Charger1 --> FC1 : до 30 А
+FC1 --> PlusBus
+Charger1 --> MinusBus : минус
+
+Charger2 --> FC2 : до 30 А
+FC2 --> PlusBus
+Charger2 --> MinusBus : минус
+
+Grid --> ATS
+Generator --> ATS
+ATS --> ACInBreaker
+ACInBreaker --> UPS : AC IN
+UPS --> ACOutBreaker : AC OUT
+ACOutBreaker --> CriticalPanel
+CriticalPanel --> Heating
+CriticalPanel --> Compressor
+CriticalPanel --> Fridge
+CriticalPanel --> Sockets
+
+ATS --> Charger1 : 220 В до входа ИБП
+ATS --> Charger2 : 220 В до входа ИБП
+
+HFCaps .. UPS : подключать только\nпосле измерений
+Temp .. UPS : контроль нагрева
+
+PE --> UPS
+PE --> Cabinet : корпус и дверцы
+
+note right of UPS
+Монтаж:
+- вертикально;
+- клеммами вверх;
+- открытое дно шкафа;
+- свободные боковые окна;
+- тяжёлые кабели закреплены
+  независимо от клемм.
+end note
+
+note bottom of F1
+F1/F2 защищают внешние
+аккумуляторные кабели.
+Внутренние предохранители ИБП
+не заменяют эту защиту.
+end note
+
+note bottom of PlusBus
+Плюсовой узел и шпильки
+обязательно закрыть кожухом.
+end note
+
+legend right
+  |= Цвет |= Назначение |
+  |<#D9EAF7>| Основные АКБ |
+  |<#FFD6D6>| Защитная коммутация |
+  |<#FFE7A8>| Силовой положительный узел |
+  |<#D9D9D9>| Силовой отрицательный узел |
+  |<#FFD9A8>| MPPT и АВР |
+  |<#CFC7F8>| ИБП |
+  |<#D9F2D9>| Распределение нагрузок |
+endlegend
+
+@enduml
