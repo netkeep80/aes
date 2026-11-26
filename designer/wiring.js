@@ -1,4 +1,5 @@
 
+let boardFocus=false, boardScale='fit';
 let wiringGesture=null, pickedPort=null, selectedWire='', mapDrag=null;
 const circuitInk={AC:'#5680a2',DC:'#b37938',CTRL:'#9271a0',PE:'#418045'};
 function svgText(x,y,value,cls='',more=''){return '<text x="'+x+'" y="'+y+'" class="'+cls+'" '+more+'>'+esc(value)+'</text>';}
@@ -100,16 +101,19 @@ function wireDrawing(ns,ls,b=null){
   const pieces=[],handles=[];
   edgeItems.forEach(({l,wire:w,from:a,to:z},i)=>{
     const editing=!!(b&&routeEdit&&w&&routeEdit.id===w.id),chosen=!!w&&w.id===selectedWire;
-    const manual=editing?routeEdit.points:(b&&w?.routes?.[b.id]);
+    const manual=editing?routeEdit.points:(b&&boardRoute(w,b.id));
     const d=linePath(displayedPoints(a,z,manual,i,boxes,!!b));
     const color=w?coreColors[w.color][1]:'#84958d',data=w?'data-wire="'+esc(w.id)+'"':'data-link="'+esc(l.id)+'"';
-    const tip=w?w.name+' · '+coreColors[w.color][0]+' · '+node(l.from.node).tag+' → '+node(l.to.node).tag:'Логическая связь без провода';
-    pieces.push('<g '+data+' class="drawedge" opacity="'+(reach && !reach.has(l.from.node) ? 0.2 : 1)+'"><title>'+esc(tip)+'</title><path d="'+d+'" fill="none" stroke="transparent" stroke-width="9"/><path class="visiblewire" d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(chosen||editing?4:2.3)+'" '+(w?'':'stroke-dasharray="3 4"')+'/>'+(w?.color==='pe'?'<path d="'+d+'" fill="none" stroke="#f2d848" stroke-dasharray="6 5" stroke-width="2"/>':'')+'</g>');
+    const tip=w?w.name+' · '+coreColors[w.color][0]+' · '+node(l.from.node).tag+' / '+(w.a||portName(l.from))+' → '+node(l.to.node).tag+' / '+(w.b||portName(l.to)):'Логическая связь без провода';
+    const unrelated=b&&boardFocus&&selected&&![l.from.node,l.to.node].includes(selected)&&!editing&&!chosen;
+    const alpha=unrelated?0.12:reach&&!reach.has(l.from.node)?0.2:1;
+    pieces.push('<g '+data+' class="drawedge" opacity="'+alpha+'"><title>'+esc(tip)+'</title><path d="'+d+'" fill="none" stroke="transparent" stroke-width="9"/><path class="visiblewire" d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(chosen||editing?4:2.3)+'" '+(w?'':'stroke-dasharray="3 4"')+'/>'+(w?.color==='pe'?'<path d="'+d+'" fill="none" stroke="#f2d848" stroke-dasharray="6 5" stroke-width="2"/>':'')+'</g>');
     if(editing)manual.forEach((p,j)=>handles.push('<circle data-bend="'+j+'" class="bend" cx="'+p.x+'" cy="'+p.y+'" r="6" fill="#ffb45a" stroke="#5c462c"/>'));
   });
   const content=rows.join('')+pieces.join('')+[...boxes.values()].map(x=>drawBox(x,!!b)).join('')+handles.join('');
   const w=b?width:width*zoom,h=b?height:height*zoom;
-  return '<div class="'+(b?'boarddrawing':'netcanvas')+'"><svg class="wiringsvg" aria-label="'+(b?'Проводка щита':'Сеть устройств')+'" viewBox="0 0 '+width+' '+height+'" width="'+w+'" height="'+h+'">'+content+'</svg></div>';
+  const boardStyle=b&&boardScale==='actual'?' style="width:'+width+'px;height:'+height+'px;min-width:0"':'';
+  return '<div class="'+(b?'boarddrawing':'netcanvas')+'"><svg class="wiringsvg"'+boardStyle+' aria-label="'+(b?'Проводка щита':'Сеть устройств')+'" viewBox="0 0 '+width+' '+height+'" width="'+w+'" height="'+h+'">'+content+'</svg></div>';
 }
 function panelWireList(b){
   const links=model.links.filter(l=>node(l.from.node).place?.board===b.id||node(l.to.node).place?.board===b.id);
@@ -117,12 +121,12 @@ function panelWireList(b){
   return '<details class="wirecatalog"><summary>Провода щита ('+buttons.length+')</summary><div class="chooseitems">'+buttons.join('')+'</div></details>';
 }
 function routeControls(){
-  if(!routeEdit)return '<div class="wirehint">Протяните провод между клеммами или выберите две клеммы по очереди. Нажмите провод для правки трассы.</div>';
+  if(!routeEdit)return '<div class="wirebar">'+act('boardFocus',boardFocus?'Показать все провода':'Подсветить провода аппарата','link',boardFocus?'active':'','aria-pressed="'+boardFocus+'"')+act('boardScale',boardScale==='fit'?'Масштаб 1:1':'Вписать щит','rail')+'</div><div class="wirehint">Протяните провод между клеммами или выберите две клеммы по очереди. Нажмите провод для правки трассы.</div>';
   return '<div class="routetools"><b>Ручная трасса</b><span>Нажмите на схему для изгиба. Точки перетаскиваются мышью.</span>'+act('popBend','Убрать точку')+act('saveRoute','Сохранить трассу','','primary')+act('cancelRoute','Отмена')+'</div>';
 }
 function wireMenu(ref){
   const {wire:w,link:l}=ref;selectedWire=w.id;render();
-  const route=b=>w.routes?.[b]?.length?'ручная':'автоматическая';
+  const route=b=>boardRoute(w,b).length?'ручная':'автоматическая';
   modal(w.name+' · '+signalRoles[w.role],'<p>'+esc(node(l.from.node).tag+' → '+node(l.to.node).tag)+' · '+esc(coreColors[w.color][0])+'</p><div class="menu-actions">'+act('editWire','Свойства провода','edit','',extraAttr('id',w.id))+
    (page==='board'?act('startRoute','Ручная прокладка','edit','',extraAttr('id',w.id))+act('resetRoute','Автопрокладка','net','',extraAttr('id',w.id)):'')+'</div>'+(page==='board'?'<p>Трасса в этом щите: '+route(boardId)+'.</p>':''));
 }

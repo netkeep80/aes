@@ -61,6 +61,7 @@ function checkPhysical(m,identity){
       assert(rolesFor(md,f.kind==='neutralBus'||t.kind==='neutralBus').includes(w.role),'Функция жилы не соответствует портам.');
       if(w.cable){const c=cables.get(w.cable);assert(c&&integer(w.core,1,c.cores),'Номер жилы вне кабеля.');const key=c.id+':'+w.core;assert(!usage.has(key),'Эта жила кабеля уже занята.');usage.set(key,w.id);}
       else stock(w);
+      assert(w.routes==null || (typeof w.routes==='object'&&!Array.isArray(w.routes)),'Некорректная запись трасс.');
       for(const [owner,points] of Object.entries(w.routes||{}))assert(boards.has(owner)&&Array.isArray(points)&&points.length<=64&&points.every(pointOK),'Некорректная ручная трасса.');
     }
   }
@@ -100,6 +101,7 @@ function calculateCircuit(project,item,media=[]){
   const actual=rows.find(x=>x.section===item.section);
   return {...result,nominal:candidate?nominal:null,candidate,actual,reason:candidate?'':'Нет пары сечение / номинал в диапазоне таблицы.'};
 }
+function boardRoute(w,bid){return w?.routes&&own(w.routes,bid)?w.routes[bid]:[];}
 function stockBase(){return {mark:'',material:'Cu',section:null,length:null};}
 function newWire(md,number){
   const role=md==='PE'?'PE':md==='DC'?'plus':md==='CTRL'?'signal':'L';

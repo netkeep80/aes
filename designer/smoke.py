@@ -150,6 +150,12 @@ def verify_wiring(browser, url, tmp):
         expect(dlg.get_by_role("heading", name="Проложить провод")).to_be_visible()
 
     expect(page.locator(".boarddrawing")).to_be_visible()
+    button("Подсветить провода аппарата").click()
+    assert page.locator('.boarddrawing .drawedge[opacity="0.12"]').count() > 0
+    button("Показать все провода").click()
+    button("Масштаб 1:1").click()
+    expect(button("Вписать щит")).to_be_visible()
+    button("Вписать щит").click()
     drag_pin("q4:out", "q3:in")
     dlg.get_by_label("Обозначение провода").fill("W-ручной")
     dlg.get_by_role("combobox", name="Цвет провода").select_option("grey")

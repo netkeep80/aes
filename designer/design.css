@@ -17,3 +17,5 @@ dialog{padding:0;border:1px solid #bec9c0;border-radius:12px;color:var(--ink);wi
 @media(max-width:720px){.boarddrawing,.mapscroll{max-height:62vh}.topactions .topfile{min-width:28px}.top .brand{gap:2px}}
 
 .wirecatalog{padding:9px 14px;border-top:1px solid var(--line);font-size:12px}.wirecatalog summary{cursor:pointer}.wirecatalog .chooseitems{max-height:210px;overflow:auto}
+
+.wirebar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--line)}.wirebar button{font-size:11px}.wirebar .active{background:#edf2e9;border-color:#a1b7a2}.drawedge:hover{opacity:1}
