@@ -112,6 +112,8 @@ def verify(playwright, url, tmp):
     click("Навигация")
     click("Сеть дома")
     expect(page.get_by_role("heading", name="Сеть дома", exact=True)).to_be_visible()
+    click("Вписать")
+    assert page.locator(".netcanvas").evaluate("el => el.scrollWidth <= el.clientWidth + 1"), "Network fit"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "Page overflow on mobile"
     assert not errors, errors
     print("PASS: add, cross-panel link, collision, relocation, reload, rejected import, JSON roundtrip, offline HTML roundtrip, offline edit and re-export, mobile navigation")
