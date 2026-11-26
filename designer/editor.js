@@ -39,11 +39,11 @@ function change(fn, base=model){
   past.push(model);if(past.length>60)past.shift();future=[];model=next;persist();normalizeUI();render();
 }
 function undo(redo=false){const from=redo?future:past,to=redo?past:future;if(!from.length)return;to.push(model);model=from.pop();persist();normalizeUI();render();}
-function nav(next){page=next;focusLink='';trace=false;document.body.classList.remove('menu');normalizeUI();render();}
+function nav(next){routeEdit=null;clearPin();page=next;focusLink='';trace=false;document.body.classList.remove('menu');normalizeUI();render();}
 function side(){
   let boards=model.boards.map(b=>'<button class="boardnav '+(page==='board'&&b.id===boardId?'on':'')+'" data-board="'+esc(b.id)+'">'+icon('box')+'<span>'+esc(b.name)+'<small>'+esc(b.tag)+'</small></span></button>').join('');
   return '<div class="sideheading">Проект</div>'+act('projectTitle',model.title,'house','projectcard')+
-   '<div class="sideheading">Рабочая область</div>'+[['board','Конструктор щита','rail'],['network','Сеть дома','net'],['inventory','Ведомость','list']].map(([key,title,k])=>act('nav',title,k,'navbtn '+(page===key?'on':''),extraAttr('page',key))).join('')+
+   '<div class="sideheading">Рабочая область</div>'+[['overview','План объектов','house'],['board','Конструктор щита','rail'],['network','Сеть дома','net'],['calc','Расчёты','bolt'],['inventory','Ведомость','list']].map(([key,title,k])=>act('nav',title,k,'navbtn '+(page===key?'on':''),extraAttr('page',key))).join('')+
    '<div class="sideblock"><div class="sideheading">Щиты проекта '+act('addBoard','','plus','sideadd','aria-label="Добавить щит" title="Добавить щит"')+'</div>'+boards+'</div><div class="sidefoot">'+act('about','О модели','info')+'</div>';
 }
 function crumb(t){return '<div class="crumb">'+icon('house')+'<span>Проект</span>'+icon('arrow')+esc(t)+'<div class="right">'+iconbtn('undo','Отменить','undo',past.length?'':'disabled')+iconbtn('redo','Повторить','redo',future.length?'':'disabled')+'</div></div>';}
@@ -70,7 +70,7 @@ function inspector(n){
   const top='<div class="panelhead"><h2>'+icon('sliders')+'Инспектор</h2></div>';
   if(!n)return '<aside class="panel inspector">'+top+empty('Выберите устройство.')+'</aside>';
   const k=kinds[n.kind],p=n.place,links=incident(n);
-  const props=[['Маркировка',n.rating||'—'],['Размещение',p?board(p.board).tag:(n.location||'Вне щита')],...(p?[['Рейка / место',p.row+' / '+p.slot],['Ширина',n.width+' М']]:[]),['Связей',links.length]];
+  const props=[...(n.power?[['Расчётный ток',numberText(loadCurrent(n.power))+' А']]:[]),['Маркировка',n.rating||'—'],['Размещение',p?board(p.board).tag:(n.location||'Вне щита')],...(p?[['Рейка / место',p.row+' / '+p.slot],['Ширина',n.width+' М']]:[]),['Связей',links.length]];
   return '<aside class="panel inspector">'+top+'<div class="identity"><span class="idicon">'+icon('chip')+'</span><div><b>'+esc(n.tag)+'</b><small>'+esc(k[0])+'</small></div></div>'+(n.name!==k[0]?'<p class="insname">'+esc(n.name)+'</p>':'')+'<dl class="props">'+props.map(([a,b])=>'<dt>'+a+'</dt><dd>'+esc(b)+'</dd>').join('')+'</dl><div class="insbuttons">'+act('editNode','Свойства','edit')+act('addLink','Соединить','link')+'</div><div class="related"><div class="eyebrow">Смежные устройства</div>'+links.slice(0,3).map(l=>{const other=node(l.from.node===n.id?l.to.node:l.from.node);return act('inspectRelated',other.tag+' · '+other.name,'link','linkchip',extraAttr('target',other.id));}).join('')+(links.length>3?act('showNet','Все связи ('+links.length+')','net','linkchip'):'')+(!links.length?'<p>Связей пока нет.</p>':'')+'</div></aside>';
 }
 function table(ns,all=false){return '<div class="scroll"><table class="data"><thead><tr><th>Код</th><th>Устройство</th><th>Тип</th><th>'+(all?'Размещение':'DIN / место')+'</th><th>Ширина</th></tr></thead><tbody>'+ns.map(n=>{const k=kinds[n.kind],p=n.place;return '<tr data-node="'+esc(n.id)+'" class="'+(n.id===selected?'selected':'')+'"><td><button class="tablebtn tag swatch tone-'+k[3]+'" data-node="'+esc(n.id)+'">'+esc(n.tag)+'</button></td><td>'+esc(n.name)+'</td><td>'+esc(k[0])+'</td><td class="unit">'+(p?(all?esc(board(p.board).tag)+' · ':'')+p.row+' / '+p.slot:esc(n.location||'Вне щита'))+'</td><td class="unit">'+(n.width?n.width+' М':'—')+'</td></tr>';}).join('')+'</tbody></table></div>';}
@@ -78,58 +78,26 @@ function boardPage(){
   const b=board();if(!b)return crumb('Конструктор щита')+heading('Компоновка','Щиты проекта','Добавьте первый щит и задайте размеры реек.',act('addBoard','Добавить щит','plus','primary'));
   const ns=occupants(b),total=b.rows*b.slots,used=ns.reduce((v,n)=>v+n.width,0);
   return crumb('Конструктор щита')+heading(b.tag,b.name,icon('pin')+esc(b.location||'Место не указано')+' <b>·</b> '+b.rows+' × '+b.slots+' мод. <b>·</b> Свободно '+(total-used)+' М',act('editBoard','Щит','settings')+act('addNode','Устройство','plus','primary'))+
-    '<div class="workspace"><section class="panel"><div class="panelhead"><h2>'+icon('rail')+'Компоновка щита</h2><div class="capacity"><i style="--fill:'+used/total*100+'%"></i>'+used+' / '+total+' М</div></div>'+cabinet(b,ns)+legend()+'</section>'+inspector(node())+'</div><section class="panel tablepanel"><div class="panelhead"><h2>Устройства щита <span class="count">'+ns.length+'</span></h2></div>'+(ns.length?table(ns):empty('Добавьте устройство в свободную позицию.'))+'</section>';
+    tabs([['wiring','Проводка'],['placement','Перестановка аппаратов']],boardMode,'boardMode')+'<div class="workspace"><section class="panel"><div class="panelhead"><h2>'+icon('rail')+(boardMode==='wiring'?'Проводка щита':'Компоновка щита')+'</h2><div class="capacity"><i style="--fill:'+used/total*100+'%"></i>'+used+' / '+total+' М</div></div>'+(boardMode==='wiring'?wireDrawing(ns,model.links.filter(l=>node(l.from.node).place?.board===b.id||node(l.to.node).place?.board===b.id),b)+routeControls()+panelWireList(b):cabinet(b,ns)+legend())+'</section>'+inspector(node())+'</div><section class="panel tablepanel"><div class="panelhead"><h2>Устройства щита <span class="count">'+ns.length+'</span></h2></div>'+(ns.length?table(ns):empty('Добавьте устройство в свободную позицию.'))+'</section>';
 }
 function render(){
-  const previous=$('.netcanvas');
+  const previous=$('.netcanvas,.boarddrawing,.mapscroll');
   const position=previous?[previous.scrollLeft,previous.scrollTop]:[0,0];
-  $('#side').innerHTML=side();$('#main').innerHTML=page==='board'?boardPage():page==='network'?networkPage():inventoryPage();
-  const canvas=$('.netcanvas');if(canvas)canvas.scrollTo(...position);
+  $('#side').innerHTML=side();$('#main').innerHTML=page==='board'?boardPage():page==='network'?networkPage():page==='overview'?overviewPage():page==='calc'?calculationPage():inventoryPage();
+  const canvas=$('.netcanvas,.boarddrawing,.mapscroll');if(canvas)canvas.scrollTo(...position);
   $('#savestate').textContent=persistState;$('#savestate').className=['Только в памяти','Конфликт вкладок'].includes(persistState)?'warn':'';
 }
 function boardOptions(value){return opt('*','Весь проект',value)+model.boards.map(b=>opt(b.id,b.tag+' · '+b.name,value)).join('')+opt('!outside','Вне щитов',value);}
 function inventoryPage(){
   const ns=model.nodes.filter(n=>networkBoard==='*'||(n.place?.board||'!outside')===networkBoard);
   return crumb('Ведомость')+heading('Оборудование','Ведомость проекта',amount(model.boards.length,'щит','щита','щитов')+' · '+projectCounts(),act('addNode','Устройство','plus','primary'))+
-    '<div class="filters"><label>Размещение <select id="boardfilter">'+boardOptions(networkBoard)+'</select></label></div><section class="panel"><div class="panelhead"><h2>Оборудование <span class="count">'+ns.length+'</span></h2></div>'+(ns.length?table(ns,true):empty('По этому фильтру устройств нет.'))+'</section>';
+    tabs([['devices','Оборудование'],['wires','Провода и кабели']],inventoryMode,'stockMode')+'<div class="filters"><label>Размещение <select id="boardfilter">'+boardOptions(networkBoard)+'</select></label></div>'+(inventoryMode==='wires'?cableInventory():'<section class="panel"><div class="panelhead"><h2>Оборудование <span class="count">'+ns.length+'</span></h2></div>'+(ns.length?table(ns,true):empty('По этому фильтру устройств нет.'))+'</section>');
 }
 function connectedSet(start,ls){
   const visited=new Set([start]), pending=[start], neighbors=new Map();
   for(const l of ls){if(!neighbors.has(l.from.node))neighbors.set(l.from.node,[]);neighbors.get(l.from.node).push(l.to.node);}
   while(pending.length){for(const next of neighbors.get(pending.pop())||[]){if(!visited.has(next)){visited.add(next);pending.push(next);}}}
   return visited;
-}
-function graph(ns,ls){
-  if(!ns.length)return empty('Добавьте устройство или выберите другой фильтр.');
-  const groups=new Map();
-  const groupOf=n=>n.place?n.place.board:['grid','generator','pv','battery'].includes(n.kind)?'!sources':['load','loadDC'].includes(n.kind)?'!loads':'!other';
-  for(const [key,label] of [['!sources','Источники'],...model.boards.map(b=>[b.id,b.tag+' · '+b.name]),['!other','Внешнее оборудование'],['!loads','Потребители']])groups.set(key,{label,items:[]});
-  ns.forEach(n=>groups.get(groupOf(n)).items.push(n));
-  const active=[...groups.values()].filter(g=>g.items.length),pos=new Map();
-  const w=active.length*200+42,h=Math.max(...active.map(g=>g.items.length))*66+55;
-  let labels='',cards='',edges='';
-  const reach=trace&&selected?connectedSet(selected,ls):null;
-  active.forEach((g,col)=>{
-    const x=24+col*200;labels+='<text x="'+x+'" y="24" fill="#57675d" font-size="11" font-weight="600">'+esc(g.label.slice(0,24))+'</text>';
-    g.items.forEach((n,row)=>{
-      const y=36+row*66;pos.set(n.id,{x,y});const chosen=selected===n.id,k=kinds[n.kind];
-      cards+='<g class="netnode" tabindex="0" role="button" aria-label="'+esc(n.tag+' '+n.name)+'" data-node="'+esc(n.id)+'" opacity="'+(reach&&!reach.has(n.id)?0.42:1)+'"><title>'+esc(n.tag+' · '+n.name)+'</title><rect x="'+x+'" y="'+y+'" width="147" height="46" rx="5" fill="'+(chosen?'#fff0da':'#fff')+'" stroke="'+(chosen?'#b76f23':'#b6c3b9')+'" stroke-width="'+(chosen?2:1)+'"/><rect x="'+(x+6)+'" y="'+(y+10)+'" width="4" height="26" rx="2" fill="var(--'+k[3]+')"/><text x="'+(x+16)+'" y="'+(y+18)+'" font-family="monospace" font-weight="700" font-size="12">'+esc(n.tag.slice(0,17))+'</text><text x="'+(x+16)+'" y="'+(y+34)+'" font-size="11">'+esc(n.name.length>20?n.name.slice(0,19)+'…':n.name)+'</text></g>';
-    });
-  });
-  const colors={AC:'#44769a',DC:'#a96d24',CTRL:'#836892'};
-  ls.forEach((l,i)=>{
-    const a=pos.get(l.from.node),b=pos.get(l.to.node);if(!a||!b)return;
-    const right=a.x<b.x, same=a.x===b.x, sx=a.x+(right||same?147:0),ex=b.x+(right?0:147);
-    const sy=a.y+22,ey=b.y+22,offset=13+(i%6)*3,dir=right||same?1:-1;
-    // Each horizontal run follows the gap below the source row, outside all cards.
-    const laneY=a.y+52+(i%5)*2,exitX=sx+dir*offset,entryX=ex-dir*offset;
-    const route=same?'M'+sx+' '+sy+' H'+(sx+offset)+' V'+ey+' H'+ex:
-      'M'+sx+' '+sy+' H'+exitX+' V'+laneY+' H'+entryX+' V'+ey+' H'+ex;
-    const md=medium(l),bold=l.id===focusLink||[l.from.node,l.to.node].includes(selected), faded=reach?!reach.has(l.from.node):!!selected&&!bold;
-    edges+='<g class="netedge" opacity="'+(faded ? 0.24 : 1)+'" data-link="'+esc(l.id)+'"><title>'+esc(node(l.from.node).tag+' → '+node(l.to.node).tag)+'</title><path d="'+route+'" fill="none" stroke="transparent" stroke-width="11"/><path class="wire" d="'+route+'" fill="none" stroke="'+colors[md]+'" stroke-opacity=".9" stroke-width="'+(bold?2.8:1.6)+'" '+(md==='CTRL'?'stroke-dasharray="5 3"':'')+' marker-end="url(#tip'+md+')"/></g>';
-  });
-  const markers=Object.entries(colors).map(([key,c])=>'<marker id="tip'+key+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1 9 5 0 9Z" fill="'+c+'"/></marker>').join('');
-  return '<div class="netcanvas"><svg viewBox="0 0 '+w+' '+h+'" width="'+w*zoom+'" height="'+h*zoom+'" aria-label="Граф функциональных связей"><defs>'+markers+'</defs>'+labels+edges+cards+'</svg></div>';
 }
 function amount(n,one,few,many){
   const mod=n%10,teen=n%100>=11 && n%100<=14;
@@ -145,11 +113,13 @@ function networkPage(){
   const ns=model.nodes.filter(n=>linked.has(n.id)||(within(n)&&networkMedium==='*'));
   const rows=ls.map(l=>'<tr data-link="'+esc(l.id)+'" class="'+(l.id===focusLink?'selected':'')+'"><td><button class="tablebtn tag" data-link="'+esc(l.id)+'">'+esc(medium(l))+'</button></td><td>'+esc(node(l.from.node).tag+' · '+portName(l.from))+'</td><td>'+esc(node(l.to.node).tag+' · '+portName(l.to))+'</td><td>'+esc(l.label||'—')+'</td></tr>').join('');
   return crumb('Сеть дома')+heading('Топология','Сеть дома',projectCounts(),act('addNode','Устройство','plus')+act('addLink','Связь','link','primary'))+
-  '<div class="filters"><label>Область <select id="boardfilter">'+boardOptions(networkBoard)+'</select></label><label>Линии <select id="mediumfilter">'+['*','AC','DC','CTRL'].map(k=>opt(k,k==='*'?'Все типы':mediumName[k],networkMedium)).join('')+'</select></label></div>'+
-  '<div class="workspace"><section class="panel"><div class="panelhead"><h2>'+icon('net')+'Схема связей</h2><div class="actions">'+act('fit','Вписать','','fit')+act('zoomOut','−','','iconbtn','aria-label="Уменьшить"')+'<span class="micro">'+Math.round(zoom*100)+'%</span>'+act('zoomIn','+','','iconbtn','aria-label="Увеличить"')+'</div></div>'+graph(ns,ls)+'<div class="legend netlegend"><span class="tone-blue">AC</span><span class="tone-orange">DC</span><span class="tone-violet">Управление</span>'+act('trace',trace?'Снять подсветку':'Пути от устройства','net','',node()?'':'disabled')+'</div></section>'+inspector(node())+'</div>'+
+  '<div class="filters"><label>Область <select id="boardfilter">'+boardOptions(networkBoard)+'</select></label><label>Линии <select id="mediumfilter">'+['*','AC','DC','CTRL','PE'].map(k=>opt(k,k==='*'?'Все типы':mediumName[k],networkMedium)).join('')+'</select></label></div>'+
+  '<div class="workspace"><section class="panel"><div class="panelhead"><h2>'+icon('net')+'Схема связей</h2><div class="actions">'+act('fit','Вписать','','fit')+act('zoomOut','−','','iconbtn','aria-label="Уменьшить"')+'<span class="micro">'+Math.round(zoom*100)+'%</span>'+act('zoomIn','+','','iconbtn','aria-label="Увеличить"')+'</div></div>'+wireDrawing(ns,ls)+'<div class="legend netlegend"><span class="tone-blue">AC</span><span class="tone-orange">DC</span><span class="tone-violet">Управление</span>'+act('trace',trace?'Снять подсветку':'Пути от устройства','net','',node()?'':'disabled')+'</div></section>'+inspector(node())+'</div>'+
   '<section class="panel tablepanel"><div class="panelhead"><h2>Соединения <span class="count">'+ls.length+'</span></h2></div>'+(ls.length?'<div class="scroll"><table class="data"><thead><tr><th>Тип</th><th>Откуда</th><th>Куда</th><th>Кабель / метка</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('Связей в этой области пока нет.'))+'</section>';
 }
+let dialogLifetime=new AbortController();
 function modal(title,body,footer='',submit=null){
+  dialogLifetime.abort();dialogLifetime=new AbortController();
   const d=$('#dialog');onSubmit=submit;$('#form').innerHTML='<div class="dialoghead"><h2>'+esc(title)+'</h2>'+iconbtn('close','Закрыть','x')+'</div><div class="dialogbody">'+body+'</div><div class="formerror" role="alert"></div>'+(footer?'<div class="dialogfoot">'+footer+'</div>':'');
   if(!d.open)d.showModal();
 }
@@ -165,8 +135,8 @@ function confirmAction(title,explain,accept,callback){
 }
 function boardForm(edit=false){
   const b=edit?board():{id:id(),tag:'ЩР-'+String(model.boards.length+1).padStart(2,'0'),name:'Новый щит',location:'',rows:2,slots:12};
-  modal(edit?'Свойства щита':'Добавить щит','<div class="fields">'+field('Название',textInput('name',b.name),true)+field('Обозначение',textInput('tag',b.tag,32))+field('Расположение',textInput('location',b.location,500,false))+field('DIN-реек',numberInput('rows',b.rows,1,12))+field('Мест на рейке',numberInput('slots',b.slots,1,48))+'</div>',commitButtons(edit?'Применить':'Добавить щит',edit?'deleteBoard':''),()=>{
-    const updated={...b,name:val('name').trim(),tag:val('tag').trim(),location:val('location').trim(),rows:+val('rows'),slots:+val('slots')};
+  modal(edit?'Свойства щита':'Добавить щит','<div class="fields">'+field('Название',textInput('name',b.name),true)+field('Обозначение',textInput('tag',b.tag,32))+field('Расположение',textInput('location',b.location,500,false))+areaField(b.area)+field('DIN-реек',numberInput('rows',b.rows,1,12))+field('Мест на рейке',numberInput('slots',b.slots,1,48))+'</div>',commitButtons(edit?'Применить':'Добавить щит',edit?'deleteBoard':''),()=>{
+    const updated={...b,area:val('area'),name:val('name').trim(),tag:val('tag').trim(),location:val('location').trim(),rows:+val('rows'),slots:+val('slots')};
     change(m=>{if(edit)Object.assign(m.boards.find(x=>x.id===b.id),updated);else m.boards.push(updated);});
     boardId=b.id;nav('board');closeDialog();
   });
@@ -183,11 +153,11 @@ function nodeForm(edit=false,at=null){
     field('Тип',select('kind',Object.entries(kinds).map(([code,k])=>opt(code,k[0],initialKind)).join('')),true)+field('Обозначение',textInput('tag',n?.tag||nextTag(initialKind),32))+field('Маркировка',textInput('rating',n?.rating||'',80,false))+
     field('Название',textInput('name',n?.name||kinds[initialKind][0]),true)+field('Размещение',select('board',opt('','Вне щита',initialBoard)+model.boards.map(b=>opt(b.id,b.tag+' · '+b.name,initialBoard)).join('')),true)+
     field('Ширина, модулей',numberInput('width',n?.width??kinds[initialKind][2],0,48))+field('DIN-рейка',numberInput('row',p?.row||1,1,12))+field('Первое место',numberInput('slot',p?.slot||1,1,48))+
-    field('Место в доме',textInput('location',n?.location||'',500,false),true)+
+    field('Место в доме',textInput('location',n?.location||'',500,false),true)+areaField(n?.area)+powerFields(n)+
     '<fieldset class="customports wide"><legend>Порты устройства</legend><div class="portlist">'+Object.entries(n?.kind==='custom'?n.ports:kinds.custom[4]).map(([k,p])=>portRow(k,p)).join('')+'</div>'+act('addPort','Порт','plus')+'</fieldset>'+
     field('Примечание', '<textarea name="note" maxlength="500" rows="2">'+esc(n?.note||'')+'</textarea>',true)+'</div>',commitButtons(edit?'Применить':'Добавить',edit?'deleteNode':''),()=>{
       const boardVal=val('board'), rec={id:n?.id||id(),kind:val('kind'),tag:val('tag').trim(),name:val('name').trim(),rating:val('rating').trim(),note:val('note').trim(),width:+val('width'),place:boardVal?{board:boardVal,row:+val('row'),slot:+val('slot')}:null};
-      rec.location=val('location').trim();
+      rec.location=val('location').trim();rec.area=val('area');rec.power=readPower();if(n?.xy)rec.xy=n.xy;
       if(rec.kind==='custom'){
         rec.ports=Object.create(null);
         for(const row of document.querySelectorAll('.portrow')){
@@ -217,11 +187,15 @@ function linkForm(existing=null){
   const rep=e=>e.node+':'+e.port, origins=candidates('out');
   const prefer=orig?.from||origins.find(e=>e.node===selected)||origins.find(e=>candidates('in',e.medium,e.node).some(t=>t.node===selected))||origins[0];
   if(!prefer){message('У устройств пока нет выходных портов.');return;}
-  modal(orig?'Свойства связи':'Соединить устройства',field('Откуда',select('from',origins.map(e=>opt(rep(e),e.title,rep(prefer))).join('')))+field('Куда',select('to',''))+field('Кабель / метка',textInput('label',orig?.label||'',500,false)),commitButtons(orig?'Применить':'Создать связь',orig?'deleteLink':''),()=>{
+  modal(orig?'Свойства связи':'Соединить устройства',field('Откуда',select('from',origins.map(e=>opt(rep(e),e.title,rep(prefer))).join('')))+field('Куда',select('to',''))+field('Кабель / метка',textInput('label',orig?.label||'',500,false))+(orig?wiresList(orig):''),commitButtons(orig?'Применить':'Создать связь',orig?'deleteLink':''),()=>{
     const parse=s=>{const [node,port]=s.split(':');return {node,port};};
     assert(val('to'),'Нет совместимого входа. Добавьте подходящее устройство.');
     const l={id:orig?.id||id(),from:parse(val('from')),to:parse(val('to')),label:val('label').trim()};
-    change(m=>{if(orig)Object.assign(m.links.find(x=>x.id===orig.id),l);else m.links.push(l);});closeDialog();message('Связь сохранена.');
+    change(m=>{if(orig){
+      const same=rep(orig.from)===rep(l.from)&&rep(orig.to)===rep(l.to);
+      if(!same && orig.wires.length)throw Error('Сначала перенесите или удалите физические провода этой связи.');
+      Object.assign(byId(m.links,orig.id),l);
+    }else m.links.push({...l,wires:[]});});closeDialog();message('Связь сохранена.');
   });
   const f=$('#form').elements;
   function destinations(){const src=origins.find(e=>rep(e)===f.from.value),dest=candidates('in',src.medium,src.node);const target=orig?.to||dest.find(e=>e.node===selected)||dest[0];
@@ -238,13 +212,15 @@ function projectName(create=false){
 function eraseNode(){
   const n=node(),lines=incident(n).length;
   confirmAction('Удалить '+n.tag+'?',n.name+'. Будут удалены устройство и его связи ('+lines+').','Удалить',()=>change(m=>{
+    for(const s of [...m.cables,...physicalRows(m).map(r=>r.wire)])if(s.design?.members.includes(n.id))s.design.members=[];
     m.nodes=m.nodes.filter(x=>x.id!==n.id);m.links=m.links.filter(l=>l.from.node!==n.id&&l.to.node!==n.id);
   }));
 }
 function eraseBoard(){
   const b=board(),count=occupants(b).length;
   confirmAction('Удалить '+b.tag+'?','Устройства ('+count+') перейдут в раздел «Вне щитов». Все связи оборудования сохранятся.','Удалить щит',()=>change(m=>{
-    m.boards=m.boards.filter(x=>x.id!==b.id);for(const n of m.nodes)if(n.place?.board===b.id)n.place=null;
+    for(const {wire} of physicalRows(m))if(wire.routes)delete wire.routes[b.id];
+    m.boards=m.boards.filter(x=>x.id!==b.id);for(const n of m.nodes)if(n.place?.board===b.id){n.place=null;n.area=b.area||n.area||'';}
   }));
 }
 function saveMenu(){
@@ -271,7 +247,7 @@ async function readImport(file){
   if(!file)return;
   try{
     assert(file.size<8*1024*1024,'Файл превышает 8 МиБ.');
-    const imported=checkModel(JSON.parse(await file.text()));
+    const imported=upgradeProject(JSON.parse(await file.text()));
     confirmAction('Открыть JSON?',imported.title+' · Щитов: '+imported.boards.length+', устройств: '+imported.nodes.length+', связей: '+imported.links.length+'. Текущий проект можно вернуть кнопкой «Отменить».','Открыть',()=>{
       change(()=>{},imported);boardId='';selected='';nav('board');
     });
@@ -279,7 +255,7 @@ async function readImport(file){
   finally{$('#importfile').value='';}
 }
 function showNode(target){
-  const n=node(target);if(!n)return;selected=n.id;focusLink='';
+  const n=node(target);if(!n)return;routeEdit=null;selected=n.id;focusLink='';
   if(page==='inventory'){nodeForm(true);return;}
   if(page==='board' && !n.place){networkBoard='*';networkMedium='*';nav('network');return;}
   if(page==='board')boardId=n.place.board;
@@ -299,20 +275,20 @@ const actions={
   files:fileMenu,save:saveMenu,projectTitle:()=>projectName(),newProject:()=>projectName(true),
   demo:()=>confirmAction('Открыть пример?','Демонстрационная компоновка дома с солнечной станцией заменит рабочую копию. Изменение можно отменить.','Открыть пример',()=>{change(()=>{},makeDemo());boardId='main';nav('board');}),
   import:()=>{$('#importfile').click();},downloadHTML:exportHtml,downloadJSON:()=>{download(JSON.stringify(model,null,2)+'\n','application/json',filename()+'.json');closeDialog();message('JSON подготовлен.');},
-  about:()=>modal('О модели','<p>AES Studio хранит щиты, размещение оборудования и типизированные связи в одном проекте AES/1. В конструкторе нажмите свободное место для добавления аппарата. Переносите аппараты мышью или укажите щит, рейку и место в свойствах.</p><p>Схема показывает функциональные связи AC, DC и управления. Номиналы, защиту, токи КЗ и режимы переключения редактор не рассчитывает. Начальная компоновка демонстрационная.</p><p>На сайте изменения сохраняются в этом браузере. В автономной HTML-копии используйте «Сохранить», чтобы скачать следующую редакцию. Каждая копия содержит один снимок HTML_DBMS/4.</p>')
+  about:()=>modal('О модели','<p>AES Studio хранит щиты, размещение оборудования и типизированные связи в одном проекте AES/2. В режиме перестановки нажмите свободное место для добавления аппарата. Переносите аппараты мышью или укажите щит, рейку и место в свойствах.</p><p>Схемы показывают функциональные связи и физические провода. План группирует кабели по назначению. Предварительные расчёты выполняются по введённому режиму и условиям прокладки. Начальные размеры, расположение и нагрузки демонстрационные.</p><p>На сайте изменения сохраняются в этом браузере. В автономной HTML-копии используйте «Сохранить», чтобы скачать следующую редакцию. Каждая копия содержит один снимок HTML_DBMS/4.</p>')
 };
 document.addEventListener('click',async e=>{
   const el=e.target.closest('[data-act],[data-board],[data-slot],[data-node],[data-link]');if(!el)return;
   try{
     if(el.dataset.act){await actions[el.dataset.act]?.(el);return;}
-    if(el.dataset.board){boardId=el.dataset.board;selected='';nav('board');return;}
+    if(el.dataset.board){routeEdit=null;boardId=el.dataset.board;selected='';nav('board');return;}
     if(el.dataset.slot){nodeForm(false,{board:boardId,row:+el.dataset.row,slot:+el.dataset.slot});return;}
     if(el.dataset.node){showNode(el.dataset.node);return;}
     if(el.dataset.link){focusLink=el.dataset.link;linkForm(model.links.find(l=>l.id===focusLink));}
   }catch(err){const target=$('#form .formerror');if($('#dialog').open && target)target.textContent=err.message;else message(err.message);}
 });
 document.addEventListener('keydown',e=>{
-  if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[role="button"]')){e.preventDefault();showNode(e.target.dataset.node);}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[data-node][role="button"]')){e.preventDefault();showNode(e.target.dataset.node);}
   if($('#dialog').open||e.target.closest('input,textarea,select'))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo(e.shiftKey);}
   if(e.key==='Escape')document.body.classList.remove('menu');
@@ -338,12 +314,12 @@ async function start(){
   const embedded=JSON.parse($('#db-store').textContent);
   if(Object.hasOwn(embedded,'format')){
     portable=true;const internal=AESDB.adoptStore(embedded);const dbHead=embedded.publicHeads?.AES;
-    const {chain}=await AESDB.openDatabase(internal,dbHead);model=checkModel(chain.state.entry);persistState='Снимок HTML';
+    const {chain}=await AESDB.openDatabase(internal,dbHead);model=upgradeProject(chain.state.entry);persistState='Снимок HTML';
   }else{
     storageKey='aes-studio:v1:'+location.pathname;model=makeDemo();persistState='Демопроект';
-    try{diskValue=localStorage.getItem(storageKey);if(diskValue){model=checkModel(JSON.parse(diskValue));persistState='Сохранено локально';}}
+    try{diskValue=localStorage.getItem(storageKey);if(diskValue){model=upgradeProject(JSON.parse(diskValue));persistState='Сохранено локально';}}
     catch(e){persistState='Только в памяти';message('Локальный черновик недоступен. Открыта демонстрационная модель.');}
   }
   normalizeUI();render();
 }
-start().catch(err=>{$('#main').textContent='Не удалось открыть встроенную модель. '+err.message;});
+

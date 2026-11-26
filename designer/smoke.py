@@ -47,6 +47,7 @@ def verify(playwright, url, tmp):
     click("Добавить щит")
     dialog.get_by_label("Название", exact=True).fill("Тестовый щит")
     submit("Добавить щит")
+    click("Перестановка аппаратов")
     click("Рейка 2, добавить в позицию 4")
     dialog.get_by_role("combobox", name="Тип", exact=True).select_option("custom")
     dialog.get_by_label("Название", exact=True).fill("Лабораторный модуль")
@@ -86,7 +87,7 @@ def verify(playwright, url, tmp):
     page.locator("#importfile").set_input_files(tmp / "invalid.json")
     expect(page.locator("#toast")).to_contain_text("Импорт отклонён")
     click("Проект")
-    submit("Новый проект")
+    click("Новый проект")
     submit("Создать")
     expect(page.get_by_role("heading", name="Щиты проекта")).to_be_visible()
     import_project(tmp / "project.json")
@@ -117,7 +118,105 @@ def verify(playwright, url, tmp):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "Page overflow on mobile"
     assert not errors, errors
     print("PASS: add, cross-panel link, collision, relocation, reload, rejected import, JSON roundtrip, offline HTML roundtrip, offline edit and re-export, mobile navigation")
+    verify_wiring(browser, url, tmp)
     browser.close()
+
+
+def verify_wiring(browser, url, tmp):
+    context = browser.new_context(viewport={"width": 1600, "height": 1000})
+    page = context.new_page()
+    page.set_default_timeout(10000)
+    errors = []
+    page.on("pageerror", lambda err: errors.append(str(err)))
+    page.goto(url)
+    dlg = page.get_by_role("dialog")
+
+    def button(name):
+        return page.get_by_role("button", name=name, exact=True)
+
+    def draft():
+        return page.evaluate("JSON.parse(localStorage.getItem('aes-studio:v1:'+location.pathname))")
+
+    def drag_pin(start, end):
+        source = page.locator(f'.wiringsvg [data-pin="{start}"]')
+        target = page.locator(f'.wiringsvg [data-pin="{end}"]')
+        source.scroll_into_view_if_needed()
+        target.scroll_into_view_if_needed()
+        a, b = source.bounding_box(), target.bounding_box()
+        page.mouse.move(a['x']+a['width']/2, a['y']+a['height']/2)
+        page.mouse.down()
+        page.mouse.move(b['x']+b['width']/2, b['y']+b['height']/2, steps=12)
+        page.mouse.up()
+        expect(dlg.get_by_role("heading", name="Проложить провод")).to_be_visible()
+
+    expect(page.locator(".boarddrawing")).to_be_visible()
+    drag_pin("q4:out", "q3:in")
+    dlg.get_by_label("Обозначение провода").fill("W-ручной")
+    dlg.get_by_role("combobox", name="Цвет провода").select_option("grey")
+    button("Сохранить провод").click()
+    model = draft()
+    link = next(l for l in model["links"] if any(w["name"]=="W-ручной" for w in l["wires"]))
+    wid = link["wires"][0]["id"]
+    assert link["from"]["node"] == "q4" and link["to"]["node"] == "q3"
+    page.locator(".wirecatalog summary").click()
+    page.locator(f'[data-act="wireOptions"][data-id="{wid}"]').click()
+    button("Ручная прокладка").click()
+    page.locator(".wiringsvg").click(position={"x": 81, "y": 40})
+    button("Сохранить трассу").click()
+    route = next(l for l in draft()["links"] if l["id"]==link["id"])["wires"][0]["routes"]["main"]
+    assert len(route)==1, route
+
+    button("Сеть дома").click()
+    drag_pin("q1:out", "sa1:a")
+    dlg.get_by_label("Обозначение провода").fill("W-сеть")
+    button("Сохранить провод").click()
+    assert any(w["name"]=="W-сеть" for l in draft()["links"] for w in l["wires"])
+    button("План объектов").click()
+    button("Здания").click()
+    card = page.locator('[data-mapid="house"]')
+    a = card.bounding_box()
+    page.mouse.move(a["x"]+30,a["y"]+25)
+    page.mouse.down()
+    page.mouse.move(a["x"]+67,a["y"]+65,steps=7)
+    page.mouse.up()
+    moved = next(a for a in draft()["areas"] if a["id"]=="house")["xy"]
+    assert moved["x"] > 35 and moved["y"] > 45
+    bundle = page.locator("[data-bundle]").first
+    bundle.locator("rect").click()
+    expect(page.locator(".mapdetail")).to_contain_text("Кабелей")
+    button("Ведомость").click()
+    button("Провода и кабели").click()
+    expect(page.get_by_role("heading",name="Журнал соединений проводов")).to_be_visible()
+    expect(page.locator(".matstats")).to_contain_text("м")
+    button("Расчёты").click()
+    stock = next(c for c in draft()["cables"] if c["design"]["members"]==["appliance"])
+    button(stock["name"]).click()
+    expect(page.locator("#calcresult")).to_contain_text("10 А")
+    expect(page.locator("#calcresult")).to_contain_text("1.5 мм²")
+    button("Сохранить условия").click()
+    button("Сохранить").click()
+    with page.expect_download() as result:
+        button("HTML · редактор и модель").click()
+    output = tmp / "wiring.html"
+    result.value.save_as(output)
+    offline = browser.new_context(offline=True)
+    portable = offline.new_page()
+    portable.goto(output.as_uri())
+    expect(portable.locator(".boarddrawing")).to_be_visible()
+    portable.get_by_role("button",name="Сохранить",exact=True).click()
+    with portable.expect_download() as result:
+        portable.get_by_role("button",name="JSON · только модель",exact=True).click()
+    result.value.save_as(tmp / "wiring.json")
+    assert json.loads((tmp / "wiring.json").read_bytes()) == draft()
+    button("Конструктор щита").click()
+    page.locator(".wirecatalog summary").click()
+    page.locator(f'[data-act="wireOptions"][data-id="{wid}"]').click()
+    button("Автопрокладка").click()
+    assert not next(l for l in draft()["links"] if l["id"]==link["id"])["wires"][0]["routes"].get("main")
+    assert not errors, errors
+    offline.close()
+    context.close()
+    print("PASS port drag in both views, conductor color, manual and automatic routes, site drag and bundles, BOM, circuit sizing, edited offline model")
 
 
 if __name__ == "__main__":

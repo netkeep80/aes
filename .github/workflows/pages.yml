@@ -21,6 +21,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build single-file editor
         run: python3 designer/build.py
+      - name: Test project model and electrical calculations
+        run: node designer/physical.test.cjs
       - name: Test project editing and offline round trips in Chrome
         run: |
           python3 -m venv "${RUNNER_TEMP}/aes-tests"

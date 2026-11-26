@@ -11,7 +11,7 @@
   <button class="hamburger iconbtn" data-act="menu" aria-label="Навигация" title="Навигация"></button>
   <div class="brand"><span class="brandmark" data-icon="bolt"></span>AES <em>Studio</em></div>
   <span class="brandline"></span><span class="descriptor">Конструктор электросистемы</span>
-  <div class="topactions"><span id="savestate" role="status"></span><button class="topfile" data-act="files"><i data-icon="folder"></i><span>Проект</span><i data-icon="down"></i></button><button class="orange" data-act="save"><i data-icon="download"></i>Сохранить</button></div>
+  <div class="topactions"><span id="savestate" role="status"></span><button class="topfile" data-act="tools" title="Инструменты" aria-label="Инструменты"><i data-icon="sliders"></i></button><button class="topfile" data-act="files"><i data-icon="folder"></i><span>Проект</span><i data-icon="down"></i></button><button class="orange" data-act="save"><i data-icon="download"></i>Сохранить</button></div>
 </header>
 <div class="layout"><aside id="side"></aside><main id="main"></main></div>
 <dialog id="dialog"><form id="form" method="dialog"></form></dialog>
@@ -21,6 +21,11 @@
 <script>
 /*{{CORE}}*/
 /*{{MODEL}}*/
+/*{{ENGINEERING}}*/
 /*{{UI}}*/
+/*{{PHYSICAL}}*/
+/*{{WIRING}}*/
+/*{{OVERVIEW}}*/
+start().catch(err=>{document.querySelector('#main').textContent='Не удалось открыть встроенную модель. '+err.message;});
 </script>
 </body></html>

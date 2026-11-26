@@ -15,6 +15,10 @@ pieces = {
     "STYLE": (root / "design.css").read_text(encoding="utf-8"),
     "CORE": "const AESDB = (() => {\n" + core + "})();",
     "MODEL": (root / "model.js").read_text(encoding="utf-8"),
+    "ENGINEERING": (root / "engineering.js").read_text(encoding="utf-8"),
+    "PHYSICAL": (root / "physical-ui.js").read_text(encoding="utf-8"),
+    "WIRING": (root / "wiring.js").read_text(encoding="utf-8"),
+    "OVERVIEW": (root / "overview.js").read_text(encoding="utf-8"),
     "UI": (root / "editor.js").read_text(encoding="utf-8"),
 }
 html = (root / "shell.html").read_text(encoding="utf-8")

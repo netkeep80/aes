@@ -24,9 +24,31 @@ const kinds = {
   charger: ['Зарядное устройство','UZ',0,'violet',ports(['in','Вход AC','AC','in'],['out','Выход DC','DC','out'])],
   load: ['Нагрузка AC','EL',0,'blue',input('AC')],
   loadDC: ['Нагрузка DC','HL',0,'orange',input('DC')],
+  disconnector: ['Выключатель нагрузки','QS',2,'blue',ac],
+  dcBreaker: ['Автомат DC','QF',2,'orange',dc],
+  dcSwitch: ['Разъединитель DC','QS',2,'orange',dc],
+  meter: ['Счётчик энергии','PI',2,'violet',ac],
+  voltageRelay: ['Реле напряжения AC','KV',2,'violet',ac],
+  impulse: ['Импульсное реле','KI',1,'violet',ports(['in','Ввод','AC','in'],['out','Нагрузка','AC','out'],['coil','Катушка','CTRL','in'])],
+  changeover: ['Перекидной рубильник','QS',3,'orange',ports(['a','Ввод I','AC','in'],['b','Ввод II','AC','in'],['out','Общий','AC','out'])],
+  phaseRelay: ['Реле контроля фаз','KF',2,'violet',ports(['in','Контроль фаз','AC','in'],['out','Контакт','CTRL','out'])],
+  transformer: ['Блок питания AC/DC','PS',3,'orange',ports(['in','Вход AC','AC','in'],['out','Выход DC','DC','out'])],
+  dcConverter: ['Преобразователь DC/DC','DC',2,'orange',dc],
+  distribution: ['Распределительный блок AC','X',2,'blue',ports(['io','Распределение','AC','both'])],
+  neutralBus: ['Шина N','XN',1,'blue',ports(['n','N','AC','both'])],
+  earthBus: ['Шина PE','XPE',1,'green',ports(['pe','PE','PE','both'])],
+  terminalAC: ['Проходная клемма AC','XT',1,'blue',ac],
+  terminalDC: ['Проходная клемма DC','XT',1,'orange',dc],
+  terminalPE: ['Клемма PE','XT',1,'green',ports(['pe','PE','PE','both'])],
+  socketDIN: ['Розетка на рейку','XS',3,'blue',ports(['in','Питание','AC','in'],['pe','PE','PE','both'])],
+  indicator: ['Индикатор напряжения','HL',1,'green',input('AC')],
+  thermostat: ['Термостат','ST',2,'violet',ports(['in','Питание','AC','in'],['out','Команда','CTRL','out'])],
+  button: ['Кнопка управления','SB',1,'violet',pair('CTRL')],
+  surge: ['УЗИП','FV',2,'green',ports(['in','Ввод','AC','in'],['pe','PE','PE','both'])],
+  groundedLoad: ['Нагрузка AC с клеммой PE','EL',0,'blue',ports(['in','Питание','AC','in'],['pe','PE','PE','both'])],
   custom: ['Пользовательское устройство','U',1,'violet',ac]
 };
-const mediumName = {AC:'Переменный ток', DC:'Постоянный ток', CTRL:'Управление'};
+const mediumName = {AC:'Переменный ток', DC:'Постоянный ток', CTRL:'Управление',PE:'Защитный проводник'};
 const id = () => crypto.randomUUID();
 const clone = x => JSON.parse(JSON.stringify(x));
 const own = (o,k) => Object.hasOwn(o,k);
@@ -50,11 +72,11 @@ function validatePorts(n) {
   assert(ps && typeof ps==='object' && !Array.isArray(ps) && Object.keys(ps).length<=32,'Допустимо до 32 пользовательских портов.');
   for(const [key,p] of Object.entries(ps)){
     assert(/^[a-zA-Z][a-zA-Z0-9_-]{0,30}$/.test(key) && p && str(p.label,60) &&
-      ['AC','DC','CTRL'].includes(p.medium) && ['in','out','both'].includes(p.dir),'Проверьте имя, тип и направление порта.');
+      ['AC','DC','CTRL','PE'].includes(p.medium) && ['in','out','both'].includes(p.dir),'Проверьте имя, тип и направление порта.');
   }
 }
 function checkModel(m) {
-  assert(m?.format==='AES/1','Ожидается проект формата AES/1.');
+  assert(m?.format==='AES/2','Ожидается проект формата AES/1 или AES/2.');
   assert(str(m.title) && Array.isArray(m.boards) && Array.isArray(m.nodes) && Array.isArray(m.links),'Повреждена структура проекта.');
   assert(m.boards.length<=120 && m.nodes.length<=3000 && m.links.length<=10000,'Превышен размер проекта.');
   const ids=new Set(), cells=new Set(), boardMap=new Map(), nodeMap=new Map(), edges=new Set();
@@ -81,9 +103,10 @@ function checkModel(m) {
     assert(a.dir!=='in' && b.dir!=='out' && a.medium===b.medium && optionalText(l.label),'Порты линии несовместимы.');
     const key=JSON.stringify([f.id,l.from.port,t.id,l.to.port]);assert(!edges.has(key),'Такая связь уже есть.');edges.add(key);
   }
+  checkPhysical(m,identity);
   return m;
 }
-function newProject(title) {return {format:'AES/1', title, boards:[], nodes:[], links:[]};}
+function newProject(title) {return {format:'AES/2', title, boards:[], nodes:[], links:[], areas:[], cables:[]};}
 function makeDemo() {
   const m=newProject('Дом и солнечная станция');
   m.boards=[
@@ -124,5 +147,6 @@ function makeDemo() {
   wire('pv','out','mp','in');wire('mp','out','bus','io');wire('bat','io','bus','io');wire('bus','io','kv1','in');
   wire('bus','io','ups','dc');wire('bus','io','fu','in');wire('fu','out','lights','in');
   wire('ups','out','qd1','in');for(const [q,load] of [['q2','room'],['q3','socket'],['q4','appliance']]){wire('qd1','out',q,'in');wire(q,'out',load,'in');}
+  demoPhysical(m);
   return checkModel(m);
 }
