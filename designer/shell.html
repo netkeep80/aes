@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#192323">
+<title>AES Studio — конструктор электросистемы</title>
+<style>/*{{STYLE}}*/</style>
+</head>
+<body>
+<header class="top">
+  <button class="hamburger iconbtn" data-act="menu" aria-label="Навигация" title="Навигация"></button>
+  <div class="brand"><span class="brandmark" data-icon="bolt"></span>AES <em>Studio</em></div>
+  <span class="brandline"></span><span class="descriptor">Конструктор электросистемы</span>
+  <div class="topactions"><span id="savestate" role="status"></span><button class="topfile" data-act="files"><i data-icon="folder"></i><span>Проект</span><i data-icon="down"></i></button><button class="orange" data-act="save"><i data-icon="download"></i>Сохранить</button></div>
+</header>
+<div class="layout"><aside id="side"></aside><main id="main"></main></div>
+<dialog id="dialog"><form id="form" method="dialog"></form></dialog>
+<input id="importfile" type="file" accept=".json,application/json" hidden>
+<div id="toast" role="status" aria-live="polite"></div>
+<script id="db-store" type="application/json">{}</script>
+<script>
+/*{{CORE}}*/
+/*{{MODEL}}*/
+/*{{UI}}*/
+</script>
+</body></html>

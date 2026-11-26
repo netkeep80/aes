@@ -1,0 +1,46 @@
+name: AES Studio Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'designer/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aes-studio-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build single-file editor
+        run: python3 designer/build.py
+      - name: Test project editing and offline round trips in Chrome
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/aes-tests"
+          "${RUNNER_TEMP}/aes-tests/bin/pip" install 'playwright==1.56.0'
+          "${RUNNER_TEMP}/aes-tests/bin/python" designer/smoke.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - name: Deploy editor
+        id: publish
+        uses: actions/deploy-pages@v4
