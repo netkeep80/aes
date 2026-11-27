@@ -119,6 +119,7 @@ def verify(playwright, url, tmp):
     assert not errors, errors
     print("PASS: add, cross-panel link, collision, relocation, reload, rejected import, JSON roundtrip, offline HTML roundtrip, offline edit and re-export, mobile navigation")
     verify_wiring(browser, url, tmp)
+    verify_studio(browser, url, tmp)
     browser.close()
 
 
@@ -135,7 +136,7 @@ def verify_wiring(browser, url, tmp):
         return page.get_by_role("button", name=name, exact=True)
 
     def draft():
-        return page.evaluate("JSON.parse(localStorage.getItem('aes-studio:v1:'+location.pathname))")
+        return page.evaluate("JSON.parse(localStorage.getItem('aes-studio:AES2:work:'+location.pathname))")
 
     def drag_pin(start, end):
         source = page.locator(f'.wiringsvg [data-pin="{start}"]')
@@ -223,6 +224,120 @@ def verify_wiring(browser, url, tmp):
     offline.close()
     context.close()
     print("PASS port drag in both views, conductor color, manual and automatic routes, site drag and bundles, BOM, circuit sizing, edited offline model")
+
+
+def verify_studio(browser, url, tmp):
+    context = browser.new_context(viewport={"width": 1500, "height": 1050})
+    page = context.new_page()
+    page.set_default_timeout(10000)
+    errors = []
+    page.on("pageerror", lambda err: errors.append(str(err)))
+    page.goto(url)
+    version = page.get_by_role("button", name="Версия студии 2.1.0 · выбрать проект", exact=True)
+    dialog = page.get_by_role("dialog")
+    expect(version).to_be_visible()
+    expect(page.locator(".boarddrawing .drawnDevice").first).to_be_visible()
+
+    # Start from a former browser draft that already uses the current JSON format.
+    fixture = page.evaluate("""() => {
+      const m=makeDemo(),link=m.links.find(l=>l.wires.some(w=>w.role==='L') &&
+        m.nodes.find(n=>n.id===l.from.node).place?.board==='main');
+      link.wires=[link.wires.find(w=>w.role==='L')];
+      m.links=[link];m.title='Мой рабочий щит';
+      localStorage.setItem('aes-studio:v1:'+location.pathname,JSON.stringify(m));
+      return m;
+    }""")
+    wid = fixture["links"][0]["wires"][0]["id"]
+    page.reload()
+    expect(page.locator(".projectcard")).to_have_text("Мой рабочий щит")
+    edge = page.locator(f'.boarddrawing .drawedge[data-wire="{wid}"]')
+    visible = edge.locator(".visiblewire")
+
+    def endpoints():
+        return visible.evaluate("""p=>[0,p.getTotalLength()].map(n=>{
+          const v=p.getPointAtLength(n);return [v.x,v.y];})""")
+
+    def hit():
+        return visible.evaluate("""p=>{
+          const g=p.closest('.drawedge'),m=p.getScreenCTM(),len=p.getTotalLength();
+          for(let f=.5,step=0;step<90;step++,f=.05+step*.01){
+            const q=p.getPointAtLength(f*len).matrixTransform(m);
+            if(document.elementFromPoint(q.x,q.y)?.closest('.drawedge')===g)return [q.x,q.y];
+          }
+          throw Error('Wire missing a visible drag target');
+        }""")
+
+    def wire():
+        return page.evaluate("""id=>JSON.parse(localStorage.getItem('aes-studio:AES2:work:'+location.pathname))
+            .links.flatMap(l=>l.wires).find(w=>w.id===id)""", wid)
+
+    ends = endpoints()
+    page.mouse.click(*hit())
+    inspector = page.locator(".wireinspector")
+    inspector.get_by_role("button", name="Оранжевый", exact=True).click()
+    expect(visible).to_have_attribute("stroke", "#b96713")
+    assert wire()["color"] == "orange"
+    x, y = hit()
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x+26, y+21, steps=8)
+    page.mouse.up()
+    route = wire()["routes"]["main"]
+    assert route and endpoints() == ends
+    expect(dialog).not_to_be_visible()
+    page.reload()
+    expect(visible).to_have_attribute("stroke", "#b96713")
+    assert wire()["routes"]["main"] == route and endpoints() == ends
+    # Escape must cancel a live preview and leave the saved route untouched.
+    x, y = hit()
+    old_path = visible.get_attribute("d")
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x+20, y+15, steps=5)
+    page.keyboard.press("Escape")
+    page.mouse.up()
+    assert wire()["routes"]["main"] == route and visible.get_attribute("d") == old_path
+    page.mouse.click(*hit())
+    inspector.get_by_role("button", name="Автопрокладка", exact=True).click()
+    assert not wire()["routes"].get("main")
+    page.get_by_role("button", name="Отменить", exact=True).click()
+    assert wire()["routes"]["main"] == route
+    version.click()
+    expect(dialog).to_contain_text("Формат проекта AES/2")
+    dialog.get_by_role("link", name="Демопроект с проводкой").click()
+    expect(page.locator(".workspacecrumb")).to_have_text("Демопроект")
+    assert page.locator(".boarddrawing .drawedge[data-wire]").count() > 1
+    page.locator(".projectcard").click()
+    dialog.get_by_role("textbox").fill("Отдельная демонстрация")
+    dialog.locator('button[type="submit"]').click()
+    version.click()
+    dialog.get_by_role("link", name="Рабочий проект").click()
+    expect(page.locator(".projectcard")).to_have_text("Мой рабочий щит")
+    assert wire()["routes"]["main"] == route and wire()["color"] == "orange"
+
+    # A logical-only AES/2 draft stays editable and explains its empty wire layer.
+    page.evaluate("""() => {const key='aes-studio:AES2:work:'+location.pathname;
+      const m=JSON.parse(localStorage.getItem(key));m.links.forEach(l=>l.wires=[]);
+      localStorage.setItem(key,JSON.stringify(m));}""")
+    page.reload()
+    expect(page.get_by_role("button", name="Добавить первый провод")).to_be_visible()
+    raw_old = json.dumps({**fixture, "format": "AES/1"}, ensure_ascii=False)
+    page.evaluate("""raw=>{
+        localStorage.removeItem('aes-studio:AES2:work:'+location.pathname);
+        localStorage.setItem('aes-studio:v1:'+location.pathname,raw);
+    }""", raw_old)
+    page.reload()
+    assert page.locator(".boarddrawing .drawedge[data-wire]").count() > 1
+    version.click()
+    with page.expect_download() as event:
+        dialog.get_by_role("button", name="Скачать прежний черновик").click()
+    output = tmp / "old-draft.json"
+    event.value.save_as(output)
+    assert output.read_text() == raw_old
+    assert page.evaluate("localStorage.getItem('aes-studio:v1:'+location.pathname)") == raw_old
+    assert not errors, errors
+    context.close()
+    print("PASS studio release, old draft recovery, isolated demo, faceplates, direct wire drag, ends, palette, undo, cancel, persisted route and color")
 
 
 if __name__ == "__main__":

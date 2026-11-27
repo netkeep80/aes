@@ -76,7 +76,7 @@ function validatePorts(n) {
   }
 }
 function checkModel(m) {
-  assert(m?.format==='AES/2','Ожидается проект формата AES/1 или AES/2.');
+  assert(m?.format==='AES/2','Эта версия студии открывает проекты AES/2.');
   assert(str(m.title) && Array.isArray(m.boards) && Array.isArray(m.nodes) && Array.isArray(m.links),'Повреждена структура проекта.');
   assert(m.boards.length<=120 && m.nodes.length<=3000 && m.links.length<=10000,'Превышен размер проекта.');
   const ids=new Set(), cells=new Set(), boardMap=new Map(), nodeMap=new Map(), edges=new Set();

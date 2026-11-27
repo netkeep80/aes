@@ -25,11 +25,10 @@ const defaultColor={L:'brown',L1:'brown',L2:'black',L3:'grey',N:'blue',PE:'pe',p
 const finiteRange=(x,lo,hi)=>Number.isFinite(x)&&x>=lo&&x<=hi;
 const positive=x=>Number.isFinite(x)&&x>0;
 const pointOK=p=>p && finiteRange(p.x,0,50000) && finiteRange(p.y,0,50000);
-function upgradeProject(raw){
-  if(raw?.format!=='AES/1')return checkModel(raw);
-  const m=clone(raw);m.format='AES/2';m.areas=[];m.cables=[];
-  for(const link of m.links||[])link.wires=[];
-  return checkModel(m);
+function validWireColor(role,color){
+  if(role==='PE')return color==='pe';
+  if(role==='N')return color==='blue';
+  return own(coreColors,color)&&color!=='pe';
 }
 function checkPhysical(m,identity){
   assert(Array.isArray(m.areas)&&m.areas.length<=1000&&Array.isArray(m.cables)&&m.cables.length<=10000,'Повреждён каталог мест или кабелей.');
@@ -56,7 +55,7 @@ function checkPhysical(m,identity){
     assert(Array.isArray(l.wires)&&l.wires.length<=256,'Проверьте список проводов связи.');
     for(const w of l.wires){
       identity(w);assert(str(w.name,100)&&own(coreColors,w.color)&&own(signalRoles,w.role)&&optionalText(w.a,60)&&optionalText(w.b,60),'Проверьте обозначения провода.');
-      assert((w.role!=='PE'||w.color==='pe')&&(w.color!=='pe'||w.role==='PE')&&(w.role!=='N'||w.color==='blue'),'Проверьте цвет PE и N.');
+      assert(validWireColor(w.role,w.color),'Проверьте цвет PE и N.');
       const f=nodes.get(l.from.node),t=nodes.get(l.to.node),md=nodePorts(f)[l.from.port].medium;
       assert(rolesFor(md,f.kind==='neutralBus'||t.kind==='neutralBus').includes(w.role),'Функция жилы не соответствует портам.');
       if(w.cable){const c=cables.get(w.cable);assert(c&&integer(w.core,1,c.cores),'Номер жилы вне кабеля.');const key=c.id+':'+w.core;assert(!usage.has(key),'Эта жила кабеля уже занята.');usage.set(key,w.id);}

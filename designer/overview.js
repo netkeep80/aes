@@ -79,7 +79,7 @@ document.addEventListener('pointerup',e=>{
 document.addEventListener('click',e=>{const el=e.target.closest('[data-bundle]');if(el)selectMap(el);});
 document.addEventListener('keydown',e=>{const el=e.target.closest('[data-bundle],[data-mapid]');if(el&&[' ','Enter'].includes(e.key)){e.preventDefault();selectMap(el);}});
 Object.assign(actions,{
-  files:el=>dropdown(el,[['newProject','Новый проект','plus'],['projectTitle','Переименовать','edit'],['import','Открыть JSON','upload'],['save','Сохранить копию','download'],['demo','Демонстрационный проект','house']]),
+  files:el=>dropdown(el,[['newProject','Новый проект','plus'],['projectTitle','Переименовать','edit'],['import','Открыть JSON','upload'],['save','Сохранить копию','download'],['studio','Выбрать студию и проект','house'],...(demoWorkspace?[['demo','Восстановить исходное демо','undo']]:[])]),
   tools:el=>dropdown(el,[['addBoard','Добавить щит','box'],['addNode','Добавить устройство','chip'],['addArea','Здание / помещение','house'],['addCable','Добавить кабель','link'],['openCalc','Электрические расчёты','bolt']]),
   addArea:()=>areaForm(),editArea:el=>areaForm(byId(model.areas,el.dataset.id)),
   removeArea:()=>{const a=byId(model.areas,$('#form').dataset.area);if([...model.areas,...model.nodes,...model.boards].some(x=>x.area===a.id||x.parent===a.id))throw Error('Сначала перенесите объекты и помещения из этого места.');confirmAction('Удалить место?',a.name,'Удалить',()=>change(m=>m.areas=m.areas.filter(x=>x.id!==a.id)));},
@@ -95,9 +95,16 @@ Object.assign(actions,{
   mapMode:el=>{overviewMode=el.dataset.key;chosenBundle='';overviewSelection='';render();},
   openMapBoard:el=>{boardId=el.dataset.id;nav('board');},
   wireOptions:el=>wireMenu(rawWire(el.dataset.id)),
+  clearWire:()=>{selectedWire='';routeEdit=null;render();},
+  wireColor:el=>{
+    const ref=rawWire(selectedWire),color=el.dataset.color;
+    if(!ref||!validWireColor(ref.wire.role,color)||color===ref.wire.color)return;
+    change(m=>byId(byId(m.links,ref.link.id).wires,ref.wire.id).color=color);
+    if($('#dialog').open)wireMenu(rawWire(selectedWire));
+  },
   startRoute:el=>{const r=rawWire(el.dataset.id);routeEdit={id:r.wire.id,points:clone(boardRoute(r.wire,boardId))};closeDialog();render();},
   resetRoute:el=>{const r=rawWire(el.dataset.id);change(m=>{const w=byId(byId(m.links,r.link.id).wires,r.wire.id);if(w.routes)delete w.routes[boardId];});closeDialog();},
-  saveRoute:()=>{const r=rawWire(routeEdit.id),points=routeEdit.points;routeEdit=null;change(m=>{const w=byId(byId(m.links,r.link.id).wires,r.wire.id);w.routes??={};Object.defineProperty(w.routes,boardId,{value:points,enumerable:true,writable:true,configurable:true});});},
+  saveRoute:()=>{const draft=routeEdit;routeEdit=null;storeBoardRoute(draft.id,draft.points);},
   cancelRoute:()=>{routeEdit=null;render();},popBend:()=>{routeEdit.points.pop();render();},
   designCircuit:el=>circuitForm(findStock(model,el.dataset.id)),openCalc:()=>nav('calc'),
   nodeProperties:el=>{selected=el.dataset.id;nodeForm(true);},

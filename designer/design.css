@@ -19,3 +19,34 @@ dialog{padding:0;border:1px solid #bec9c0;border-radius:12px;color:var(--ink);wi
 .wirecatalog{padding:9px 14px;border-top:1px solid var(--line);font-size:12px}.wirecatalog summary{cursor:pointer}.wirecatalog .chooseitems{max-height:210px;overflow:auto}
 
 .wirebar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid var(--line)}.wirebar button{font-size:11px}.wirebar .active{background:#edf2e9;border-color:#a1b7a2}.drawedge:hover{opacity:1}
+
+/* Keep the same face, terminal screws and handle on both cabinet views. */
+.top .brand{padding:2px 3px 2px 0;border:0;background:transparent;color:inherit;gap:5px}
+.brand strong{font:600 11px var(--mono);border:1px solid #65756c;border-radius:5px;color:#e2eae0;padding:3px 5px;letter-spacing:0;margin-left:3px}
+.brand>i svg{width:12px;height:12px;color:#c4d0c8}
+.workspacecrumb{font:inherit;border:0;background:transparent;padding:1px;color:inherit}
+.launchlist{display:grid;gap:8px;margin:12px 0}
+.launch{border:1px solid #b8c4ba;padding:12px 14px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;color:var(--ink)}
+.launch span,.wirecommands small,.wirepalette small,.wirepalette span{font-size:12px;color:var(--mute)}
+.launch.selected{background:#eef4ea}
+a.launch:hover{background:#f7f5ed;border-color:#a36b2a}
+.boarddrawing{padding:9px}.boarddrawing .wiringsvg{overflow:visible}
+.wirednode foreignObject{overflow:visible}
+.drawnDevice.device{height:100%;width:100%;padding:3px;pointer-events:none}
+.drawnDevice .face{margin:0;padding-block:1px}.drawnDevice .face b{font-size:11px}
+.drawnDevice .toggle{height:12px}.drawnDevice .terminal{width:6px;height:6px}
+.boarddrawing .drawedge[data-wire]{cursor:grab;touch-action:none}
+.boarddrawing .drawedge[data-wire]:active{cursor:grabbing}
+.drawedge path{stroke-linejoin:round;stroke-linecap:round}
+.wireinspector{display:block}.wirepalette,.wirecommands{display:grid;gap:8px;margin:12px 0}
+.wirepalette>div:first-child{display:grid;gap:3px}
+.wirepalette [role=group]{display:flex;flex-wrap:wrap;gap:5px}
+.wirepalette .colorchip{height:28px;width:28px;padding:4px}
+.colorchip i{width:100%;height:100%;border-radius:50%;background:var(--wire-color);border:1px solid #34443955}
+.colorchip[data-color=pe] i{background:repeating-linear-gradient(135deg,#418045 0 4px,#f2d848 4px 8px)}
+.colorchip[aria-pressed=true]{outline:2px solid #385448;outline-offset:0}
+.wirecommands{padding-top:12px;border-top:1px solid var(--line)}
+.wireempty{padding:12px 14px;display:flex;align-items:center;flex-wrap:wrap;gap:7px;background:#faf4e6;font-size:12px}
+.wireempty span{flex-basis:100%}
+@media(max-width:520px){.top .brand{font-size:15px;gap:2px}.top .brandmark{display:none}.brand strong{font-size:10px}.wireinspector{display:block}.boarddrawing{padding:4px}}
+@media(max-width:365px){.top{gap:3px}.brand>i{display:none}}

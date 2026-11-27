@@ -87,7 +87,7 @@ function wireForm(link,wire=null,seed=null){
     const c=byId(model.cables,f.cable.value);f.core.max=c.cores;
     if(choose){const used=new Set(physicalRows(model).map(x=>x.wire).filter(x=>x.cable===c.id&&x.id!==w.id).map(x=>x.core));let i=1;while(i<=c.cores&&used.has(i))i++;f.core.value=i;}
   };
-  function roleColor(reset){if(reset)f.color.value=defaultColor[f.role.value];f.color.disabled=['N','PE'].includes(f.role.value);}
+  function roleColor(reset){if(reset)f.color.value=defaultColor[f.role.value];for(const option of f.color.options)option.disabled=!validWireColor(f.role.value,option.value);f.color.disabled=['N','PE'].includes(f.role.value);}
   f.cable.onchange=()=>updateCable(true);f.role.onchange=()=>roleColor(true);roleColor(false);updateCable();
   if(wire)$('#form').dataset.wire=wire.id;
 }

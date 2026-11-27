@@ -15,19 +15,31 @@ function nodeBox(n,x,y,w,h){
   return {n,x,y,w,h,pins};
 }
 function drawBox(box,isBoard){
-  const {n,x,y,w,h,pins}=box,k=kinds[n.kind],limit=Math.max(3,Math.floor((w-9)/6));
-  let out='<g class="wirednode" data-node="'+esc(n.id)+'" tabindex="0" role="button" aria-label="'+esc(n.tag+' · '+n.name)+'"><title>'+esc(n.tag+' · '+n.name)+'</title>'+
-   '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="'+(selected===n.id?'#fff4df':'#fcfdf9')+'" stroke="'+(selected===n.id?'#b36b18':'#91a39a')+'"/>'+
-   '<path d="M'+(x+3)+' '+(y+9)+'h'+(w-6)+'" stroke="var(--'+k[3]+')" stroke-width="3"/>'+svgText(x+5,y+25,clipped(n.tag,limit),'drawtag');
-  if(w>70)out+=svgText(x+5,y+40,clipped(n.name,limit),'drawlabel');
-  if(isBoard)out+='<rect x="'+(x+w*.28)+'" y="'+(y+h-17)+'" width="'+(w*.44)+'" height="7" rx="2" fill="#51635a"/>';
+  const {n,x,y,w,h}=box,k=kinds[n.kind],limit=Math.max(3,Math.floor((w-9)/6));
+  let out='<g class="wirednode" data-node="'+esc(n.id)+'" tabindex="0" role="button" aria-label="'+esc(n.tag+' · '+n.name)+'"><title>'+esc(n.tag+' · '+n.name)+'</title>';
+  if(isBoard){
+    out+='<foreignObject x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"><div xmlns="http://www.w3.org/1999/xhtml" class="device drawnDevice tone-'+k[3]+(selected===n.id?' selected':'')+'" data-kind="'+esc(n.kind)+'">'+deviceFace(n)+'</div></foreignObject>';
+  }else{
+    out+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="'+(selected===n.id?'#fff4df':'#fcfdf9')+'" stroke="'+(selected===n.id?'#b36b18':'#91a39a')+'"/>'+
+      '<path d="M'+(x+3)+' '+(y+9)+'h'+(w-6)+'" stroke="var(--'+k[3]+')" stroke-width="3"/>'+svgText(x+5,y+25,clipped(n.tag,limit),'drawtag')+svgText(x+5,y+40,clipped(n.name,limit),'drawlabel');
+  }
   out+='</g>';
+  return out;
+}
+function drawPins({n,pins}){
+  let out='';
   for(const [key,pin] of pins){
     const data='data-pin="'+esc(n.id+':'+key)+'"',title=n.tag+' · '+pin.p.label+' ('+pin.p.medium+')';
     out+='<g '+data+' class="wirepin" tabindex="0" role="button" aria-label="'+esc(title)+'"><title>'+esc(title+' · протяните или выберите два порта')+'</title>'+
       '<circle cx="'+pin.x+'" cy="'+pin.y+'" r="9" fill="transparent"/><circle cx="'+pin.x+'" cy="'+pin.y+'" r="4.2" fill="#fff" stroke="'+circuitInk[pin.p.medium]+'" stroke-width="2"/></g>';
   }
   return out;
+}
+function cabinetBackdrop(w,h){
+  const corners=[[13,13],[w-13,13],[13,h-13],[w-13,h-13]];
+  return '<defs><linearGradient id="caseMetal" x2=".95" y2="1"><stop stop-color="#f6f7f0"/><stop offset=".56" stop-color="#e4e9e0"/><stop offset="1" stop-color="#cfd7ce"/></linearGradient><linearGradient id="railMetal" x1="0" x2="0" y2="1"><stop stop-color="#85938d"/><stop offset=".16" stop-color="#f6f8f3"/><stop offset=".32" stop-color="#b3beb8"/><stop offset=".72" stop-color="#a3b1a8"/><stop offset=".86" stop-color="#ecf0ea"/><stop offset="1" stop-color="#91a097"/></linearGradient></defs>'+
+    '<rect x="3" y="3" width="'+(w-6)+'" height="'+(h-6)+'" rx="9" fill="url(#caseMetal)" stroke="#8c9a90"/><rect x="6" y="6" width="'+(w-12)+'" height="'+(h-12)+'" rx="7" fill="none" stroke="#f9faf4"/>'+
+    corners.map(([x,y])=>'<g transform="translate('+x+' '+y+')"><circle r="3.8" fill="url(#railMetal)" stroke="#849189"/><path d="m-2 2 4-4" stroke="#68766d"/></g>').join('');
 }
 function drawGeometry(ns,ls,b){
   const boxes=new Map(),rows=[],pad=55,pitch=49,first=61,rowGap=150,edgeItems=[];
@@ -65,7 +77,8 @@ function drawGeometry(ns,ls,b){
   if(b){
     for(let r=0;r<b.rows;r++){
       const y=first+r*rowGap;
-      rows.push('<rect x="'+pad+'" y="'+(y+23)+'" width="'+b.slots*pitch+'" height="18" fill="#c1cdc5" stroke="#99aaa0"/>');
+      const railWidth=b.slots*pitch;
+      rows.push('<rect x="'+pad+'" y="'+(y-5)+'" width="'+railWidth+'" height="75" rx="3" fill="#d8dfd5" stroke="#b9c6ba"/><rect x="'+pad+'" y="'+(y+21)+'" width="'+railWidth+'" height="23" fill="url(#railMetal)" stroke="#89978e"/><path d="M'+(pad+5)+' '+(y+32)+'h'+(railWidth-10)+'" stroke="#7a8880" stroke-width="4" stroke-dasharray="12 18"/>');
       rows.push(svgText(8,y+35,'DIN '+(r+1),'grouplabel'));
       for(let i=0;i<b.slots;i++)rows.push(svgText(pad+i*pitch+pitch*.5,y-21,String(i+1),'slotlabel','text-anchor="middle"'));
     }
@@ -76,7 +89,7 @@ function drawGeometry(ns,ls,b){
       items.forEach((item,i)=>{const pin={x:left+(i+1)*span/(items.length+1),y,side:-1,exit:true};if(!item.from)item.from=pin;else item.to=pin;});
       left+=span+10;
     }
-    width=Math.max(width,left+pad);height+=exitGroups.size?52:0;
+    width=Math.max(width,left+pad);rows.unshift(cabinetBackdrop(width,height-13));height+=exitGroups.size?52:0;
   }
   return {boxes,rows,width,height,edgeItems};
 }
@@ -98,7 +111,7 @@ function displayedPoints(a,b,manual,i,boxes,isBoard){
 function wireDrawing(ns,ls,b=null){
   if(!ns.length&&!b)return empty('Устройств в этой области пока нет.');
   const {boxes,rows,width,height,edgeItems}=drawGeometry(ns,ls,b),reach=!b&&trace&&selected?connectedSet(selected,ls):null;
-  const pieces=[],handles=[];
+  const pieces=[],front=[],handles=[];
   edgeItems.forEach(({l,wire:w,from:a,to:z},i)=>{
     const editing=!!(b&&routeEdit&&w&&routeEdit.id===w.id),chosen=!!w&&w.id===selectedWire;
     const manual=editing?routeEdit.points:(b&&boardRoute(w,b.id));
@@ -107,27 +120,41 @@ function wireDrawing(ns,ls,b=null){
     const tip=w?w.name+' · '+coreColors[w.color][0]+' · '+node(l.from.node).tag+' / '+(w.a||portName(l.from))+' → '+node(l.to.node).tag+' / '+(w.b||portName(l.to)):'Логическая связь без провода';
     const unrelated=b&&boardFocus&&selected&&![l.from.node,l.to.node].includes(selected)&&!editing&&!chosen;
     const alpha=unrelated?0.12:reach&&!reach.has(l.from.node)?0.2:1;
-    pieces.push('<g '+data+' class="drawedge" opacity="'+alpha+'"><title>'+esc(tip)+'</title><path d="'+d+'" fill="none" stroke="transparent" stroke-width="9"/><path class="visiblewire" d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(chosen||editing?4:2.3)+'" '+(w?'':'stroke-dasharray="3 4"')+'/>'+(w?.color==='pe'?'<path d="'+d+'" fill="none" stroke="#f2d848" stroke-dasharray="6 5" stroke-width="2"/>':'')+'</g>');
+    (chosen?front:pieces).push('<g '+data+(w?' tabindex="0" role="button" aria-label="'+esc(tip)+'"':'')+' class="drawedge" opacity="'+alpha+'"><title>'+esc(tip)+'</title><path d="'+d+'" fill="none" stroke="transparent" stroke-width="9"/><path class="visiblewire" d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+(chosen||editing?4:2.3)+'" '+(w?'':'stroke-dasharray="3 4"')+'/>'+(w?.color==='pe'?'<path d="'+d+'" fill="none" stroke="#f2d848" stroke-dasharray="6 5" stroke-width="2"/>':'')+'</g>');
     if(editing)manual.forEach((p,j)=>handles.push('<circle data-bend="'+j+'" class="bend" cx="'+p.x+'" cy="'+p.y+'" r="6" fill="#ffb45a" stroke="#5c462c"/>'));
   });
-  const content=rows.join('')+pieces.join('')+[...boxes.values()].map(x=>drawBox(x,!!b)).join('')+handles.join('');
+  const devices=[...boxes.values()],faces=devices.map(box=>drawBox(box,!!b)).join(''),edges=pieces.join('')+front.join('');
+  const content=rows.join('')+(b?faces+edges:edges+faces)+devices.map(drawPins).join('')+handles.join('');
   const w=b?width:width*zoom,h=b?height:height*zoom;
   const boardStyle=b&&boardScale==='actual'?' style="width:'+width+'px;height:'+height+'px;min-width:0"':'';
   return '<div class="'+(b?'boarddrawing':'netcanvas')+'"><svg class="wiringsvg"'+boardStyle+' aria-label="'+(b?'Проводка щита':'Сеть устройств')+'" viewBox="0 0 '+width+' '+height+'" width="'+w+'" height="'+h+'">'+content+'</svg></div>';
 }
 function panelWireList(b){
   const links=model.links.filter(l=>node(l.from.node).place?.board===b.id||node(l.to.node).place?.board===b.id);
+  if(links.length&&links.every(l=>l.wires.length===0))return '<div class="wireempty"><strong>У связей этого щита пока нет проводов.</strong><span>Для цветной трассы укажите провод в связи или откройте демонстрационный щит.</span>'+act('addWireTo','Добавить первый провод','plus','',extraAttr('id',links[0].id))+act('studio','Открыть выбор проекта','folder')+'</div>';
   const buttons=links.flatMap(l=>l.wires.map(w=>act('wireOptions',w.name+' · '+node(l.from.node).tag+' → '+node(l.to.node).tag,'link','',extraAttr('id',w.id))));
   return '<details class="wirecatalog"><summary>Провода щита ('+buttons.length+')</summary><div class="chooseitems">'+buttons.join('')+'</div></details>';
 }
+function wirePalette(ref){
+  if(!ref)return '';
+  const {wire:w,link:l}=ref;
+  const buttons=Object.entries(coreColors).filter(([color])=>validWireColor(w.role,color)).map(([color,[name,ink]])=>
+    '<button type="button" class="colorchip" style="--wire-color:'+ink+'" data-act="wireColor" data-color="'+color+'" title="'+name+'" aria-label="'+name+'" aria-pressed="'+(color===w.color)+'"><i></i></button>').join('');
+  return '<div class="wirepalette"><div><b>'+esc(w.name)+'</b><span>'+esc(node(l.from.node).tag+' → '+node(l.to.node).tag)+'</span></div><div role="group" aria-label="Цвет провода">'+buttons+'</div><small>'+coreColors[w.color][0]+' · '+signalRoles[w.role]+'</small>'+act('editWire','Свойства провода','edit','',extraAttr('id',w.id))+'</div>';
+}
+function wireInspector(ref){
+  const {wire:w}=ref,attr=extraAttr('id',w.id);
+  return '<aside class="panel inspector wireinspector"><div class="panelhead"><h2>'+icon('link')+'Провод</h2>'+iconbtn('clearWire','Снять выбор','x')+'</div>'+wirePalette(ref)+
+    '<div class="wirecommands"><small>Прокладка · '+(boardRoute(w,boardId).length?'ручная':'автоматическая')+'</small>'+act('startRoute','Редактировать изгибы','edit','',attr)+act('resetRoute','Автопрокладка','net','',attr)+'</div></aside>';
+}
 function routeControls(){
-  if(!routeEdit)return '<div class="wirebar">'+act('boardFocus',boardFocus?'Показать все провода':'Подсветить провода аппарата','link',boardFocus?'active':'','aria-pressed="'+boardFocus+'"')+act('boardScale',boardScale==='fit'?'Масштаб 1:1':'Вписать щит','rail')+'</div><div class="wirehint">Протяните провод между клеммами или выберите две клеммы по очереди. Нажмите провод для правки трассы.</div>';
+  if(!routeEdit)return '<div class="wirebar">'+act('boardFocus',boardFocus?'Показать все провода':'Подсветить провода аппарата','link',boardFocus?'active':'','aria-pressed="'+boardFocus+'"')+act('boardScale',boardScale==='fit'?'Масштаб 1:1':'Вписать щит','rail')+'</div><div class="wirehint">Протяните провод между клеммами или выберите две клеммы по очереди. Нажмите провод для выбора цвета. Потяните участок провода мышью, чтобы сдвинуть трассу.</div>';
   return '<div class="routetools"><b>Ручная трасса</b><span>Нажмите на схему для изгиба. Точки перетаскиваются мышью.</span>'+act('popBend','Убрать точку')+act('saveRoute','Сохранить трассу','','primary')+act('cancelRoute','Отмена')+'</div>';
 }
 function wireMenu(ref){
   const {wire:w,link:l}=ref;selectedWire=w.id;render();
   const route=b=>boardRoute(w,b).length?'ручная':'автоматическая';
-  modal(w.name+' · '+signalRoles[w.role],'<p>'+esc(node(l.from.node).tag+' → '+node(l.to.node).tag)+' · '+esc(coreColors[w.color][0])+'</p><div class="menu-actions">'+act('editWire','Свойства провода','edit','',extraAttr('id',w.id))+
+  modal(w.name+' · '+signalRoles[w.role],wirePalette(ref)+'<div class="menu-actions">'+
    (page==='board'?act('startRoute','Ручная прокладка','edit','',extraAttr('id',w.id))+act('resetRoute','Автопрокладка','net','',extraAttr('id',w.id)):'')+'</div>'+(page==='board'?'<p>Трасса в этом щите: '+route(boardId)+'.</p>':''));
 }
 function parsePin(key){const [node,port]=key.split(':');return {node,port};}
@@ -149,23 +176,85 @@ function bounded(svg,e){
   const p=svgPoint(svg,e),box=svg.viewBox.baseVal;
   return {x:Math.round(Math.max(1,Math.min(box.width-1,p.x))),y:Math.round(Math.max(1,Math.min(box.height-1,p.y)))};
 }
+function storeBoardRoute(wid,points){
+  const ref=rawWire(wid);
+  change(m=>{
+    const w=byId(byId(m.links,ref.link.id).wires,wid);
+    w.routes??={};
+    Object.defineProperty(w.routes,boardId,{value:points,enumerable:true,writable:true,configurable:true});
+  });
+}
+function nearestSegment(points,p){
+  let best=Infinity,index=1;
+  for(let i=0;i<points.length-1;i++){
+    const a=points[i],b=points[i+1],dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
+    if(!length)continue;
+    const t=Math.min(1,Math.max(0,((p.x-a.x)*dx+(p.y-a.y)*dy)/length));
+    const d=Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);
+    if(d<best){best=d;index=i;}
+  }
+  return Math.max(1,Math.min(points.length-3,index));
+}
+function moveWireSegment(g,p){
+  const verts=g.vertices,first=verts[0],last=verts.at(-1),a=verts[g.index],b=verts[g.index+1];
+  const dx=b.x===a.x||b.y!==a.y?p.x-g.start.x:0;
+  const dy=b.y===a.y||b.x!==a.x?p.y-g.start.y:0;
+  const limit=g.svg.viewBox.baseVal;
+  const moved=verts.slice(1,-1).map((v,i)=>(i===g.index-1||i===g.index)?{
+    x:Math.round(Math.max(1,Math.min(limit.width-1,v.x+dx))),
+    y:Math.round(Math.max(1,Math.min(limit.height-1,v.y+dy)))
+  }:v);
+  const endStub=(v,next)=>({x:v.x,y:v.y+Math.sign(next.y-v.y)*10});
+  const startStub=endStub(first,verts[1]),end=endStub(last,verts.at(-2));
+  const eq=(a,b)=>a.x===b.x&&a.y===b.y;
+  if(moved.length&&eq(moved[0],startStub))moved.shift();
+  if(moved.length&&eq(moved.at(-1),end))moved.pop();
+  g.points=moved.filter((v,i)=>i===0||!eq(v,moved[i-1]));
+  const path=linePath([first,startStub,...g.points,end,last]);
+  g.edge.querySelectorAll('path').forEach(el=>el.setAttribute('d',path));
+}
+function cancelWiringGesture(){
+  const g=wiringGesture;wiringGesture=null;
+  if(!g)return;
+  if(g.svg.hasPointerCapture(g.pointer))g.svg.releasePointerCapture(g.pointer);
+  g.line?.remove();
+  if(g.bend!==undefined&&routeEdit)routeEdit.points[g.bend]=g.before;
+  if(g.edge||g.bend!==undefined)render();
+}
+function pickWire(edge){
+  const ref=rawWire(edge.dataset.wire);if(!ref)return;
+  if(page==='board'){selectedWire=ref.wire.id;render();}
+  else wireMenu(ref);
+}
 document.addEventListener('pointerdown',e=>{
-  if(e.button!==0)return;
+  if(e.button!==0||wiringGesture)return;
   const svg=e.target.closest('.wiringsvg');if(!svg)return;
   const pin=e.target.closest('[data-pin]'),bend=e.target.closest('[data-bend]');
   if(routeEdit&&page==='board'){
     e.preventDefault();e.stopPropagation();
-    if(bend){wiringGesture={svg,bend:+bend.dataset.bend,target:bend};svg.setPointerCapture(e.pointerId);}
+    if(bend){wiringGesture={svg,pointer:e.pointerId,bend:+bend.dataset.bend,target:bend,before:routeEdit.points[+bend.dataset.bend]};svg.setPointerCapture(e.pointerId);}
     else if(routeEdit.points.length<64){routeEdit.points.push(bounded(svg,e));render();}
     return;
+  }
+  const edge=e.target.closest('.boarddrawing .drawedge[data-wire]');
+  if(!pin&&edge){
+    const vertices=edge.querySelector('.visiblewire').getAttribute('d').match(/[ML][^ML]+/g)
+      .map(token=>{const [x,y]=token.slice(1).split(' ').map(Number);return {x,y};});
+    const start=svgPoint(svg,e);
+    wiringGesture={svg,pointer:e.pointerId,edge,vertices,start,index:nearestSegment(vertices,start),cx:e.clientX,cy:e.clientY};
+    svg.setPointerCapture(e.pointerId);e.preventDefault();return;
   }
   if(!pin)return;
   e.preventDefault();const start=svgPoint(svg,e),line=document.createElementNS('http://www.w3.org/2000/svg','path');
   line.setAttribute('class','rubberwire');svg.append(line);svg.setPointerCapture(e.pointerId);
-  wiringGesture={svg,pin,start,line,cx:e.clientX,cy:e.clientY};
+  wiringGesture={svg,pointer:e.pointerId,pin,start,line,cx:e.clientX,cy:e.clientY};
 });
 document.addEventListener('pointermove',e=>{
-  const g=wiringGesture;if(!g)return;
+  const g=wiringGesture;if(!g||g.pointer!==e.pointerId)return;
+  if(g.edge){
+    if(!g.points&&Math.hypot(e.clientX-g.cx,e.clientY-g.cy)<4)return;
+    moveWireSegment(g,svgPoint(g.svg,e));return;
+  }
   if(g.bend!==undefined){const p=bounded(g.svg,e);routeEdit.points[g.bend]=p;g.target.setAttribute('cx',p.x);g.target.setAttribute('cy',p.y);
     const edge=[...g.svg.querySelectorAll('.drawedge')].find(el=>el.dataset.wire===routeEdit.id);
     if(edge){const vertices=edge.querySelector('path').getAttribute('d').match(/[ML][^ML]+/g);vertices[g.bend+2]='L'+p.x+' '+p.y;edge.querySelectorAll('path').forEach(path=>path.setAttribute('d',vertices.join(' ')));}
@@ -173,19 +262,27 @@ document.addEventListener('pointermove',e=>{
   const p=svgPoint(g.svg,e);g.line.setAttribute('d',linePath([g.start,p]));
 });
 document.addEventListener('pointerup',e=>{
-  const g=wiringGesture;if(!g)return;wiringGesture=null;
+  const g=wiringGesture;if(!g||g.pointer!==e.pointerId)return;wiringGesture=null;
   if(g.svg.hasPointerCapture(e.pointerId))g.svg.releasePointerCapture(e.pointerId);
+  if(g.edge){
+    selectedWire=g.edge.dataset.wire;
+    if(g.points?.length>64){render();message('В трассе уже 64 изгиба. Уберите лишнюю точку.');}
+    else if(g.points){storeBoardRoute(selectedWire,g.points);}
+    else render();
+    return;
+  }
   if(g.bend!==undefined){render();return;}
   g.line.remove();const end=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-pin]');
   if(Math.hypot(e.clientX-g.cx,e.clientY-g.cy)<5){choosePin(g.pin);return;}
   clearPin();if(end)completePins(g.pin.dataset.pin,end.dataset.pin);else message('Отпустите провод на клемме назначения.');
 });
-document.addEventListener('pointercancel',()=>{wiringGesture?.line?.remove();wiringGesture=null;mapDrag=null;});
+document.addEventListener('pointercancel',e=>{if(wiringGesture?.pointer===e.pointerId)cancelWiringGesture();mapDrag=null;});
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){clearPin();if(routeEdit){routeEdit=null;render();}}
+  if(e.key==='Escape'){cancelWiringGesture();clearPin();if(routeEdit){routeEdit=null;render();}}
+  if(!routeEdit&&['Enter',' '].includes(e.key)&&e.target.matches('.drawedge[data-wire]')){e.preventDefault();pickWire(e.target);return;}
   if(['Enter',' '].includes(e.key)&&e.target.matches('[data-pin]')){e.preventDefault();choosePin(e.target);}
 });
 document.addEventListener('click',e=>{
   if(routeEdit&&e.target.closest('.wiringsvg')){e.stopImmediatePropagation();return;}
-  const wire=e.target.closest('.drawedge[data-wire]');if(wire){e.stopImmediatePropagation();const ref=rawWire(wire.dataset.wire);if(ref)wireMenu(ref);}
+  const wire=e.target.closest('.drawedge[data-wire]');if(wire){e.stopImmediatePropagation();pickWire(wire);}
 },true);
