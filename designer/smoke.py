@@ -218,7 +218,7 @@ def verify_wiring(browser, url, tmp):
     button("Конструктор щита").click()
     page.locator(".wirecatalog summary").click()
     page.locator(f'[data-act="wireOptions"][data-id="{wid}"]').click()
-    button("Автопрокладка").click()
+    dlg.get_by_role("button", name="Автопрокладка", exact=True).click()
     assert not next(l for l in draft()["links"] if l["id"]==link["id"])["wires"][0]["routes"].get("main")
     assert not errors, errors
     offline.close()
