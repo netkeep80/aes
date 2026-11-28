@@ -50,3 +50,17 @@ a.launch:hover{background:#f7f5ed;border-color:#a36b2a}
 .wireempty span{flex-basis:100%}
 @media(max-width:520px){.top .brand{font-size:15px;gap:2px}.top .brandmark{display:none}.brand strong{font-size:10px}.wireinspector{display:block}.boarddrawing{padding:4px}}
 @media(max-width:365px){.top{gap:3px}.brand>i{display:none}}
+
+.orthoSvg{display:block;user-select:none}
+.orthoSvg .routeink,.orthoSvg .routehalo,.orthoSvg .seghit{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.routeink,.routehalo{pointer-events:none}
+.routehalo{stroke:#fff;stroke-width:9}
+.routechosen .routeink:first-of-type,.routeedge:hover .routeink{filter:drop-shadow(0 0 1px #596d60)}
+.seghit{stroke:transparent;stroke-width:12;pointer-events:stroke;touch-action:none}
+.seghit.vertical{cursor:ew-resize}.seghit.horizontal{cursor:ns-resize}
+.routecaption{cursor:grab;touch-action:none}.routecaption rect{fill:#fffffa;stroke:#b7c5b8}
+.orthoSvg [data-node],.orthoSvg .mapcard{cursor:grab;touch-action:none}
+.orthoSvg [data-node]:active,.orthoSvg .mapcard:active{cursor:grabbing}
+.diagramtools{display:grid;justify-items:stretch;gap:8px;border-block:1px solid var(--line);padding:12px 0;margin:10px 0;font-size:12px}
+.diagramtools>span{color:var(--mute)}.diagramtools label{display:flex;align-items:center;justify-content:space-between}
+.diagramtools input{width:44px;height:28px;padding:2px;border:1px solid var(--line);cursor:pointer}

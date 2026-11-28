@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import threading
 
+from diagram_smoke import verify_diagrams
 from playwright.sync_api import expect, sync_playwright
 
 root = Path(__file__).resolve().parent.parent
@@ -69,7 +70,7 @@ def verify(playwright, url, tmp):
     dialog.get_by_label("Первое место").fill("8")
     submit("Применить")
     expect(page.get_by_role("heading", name="Щит резерва", exact=True)).to_be_visible()
-    click("Сеть дома")
+    click("Сеть связей")
     expect(page.get_by_role("row").filter(has_text="Межщитовая линия")).to_contain_text("ZZ1")
     page.reload()
     click("Ведомость")
@@ -111,8 +112,8 @@ def verify(playwright, url, tmp):
     expect(page.get_by_role("heading", name="Щит после переноса")).to_be_visible()
     page.set_viewport_size({"width": 390, "height": 844})
     click("Навигация")
-    click("Сеть дома")
-    expect(page.get_by_role("heading", name="Сеть дома", exact=True)).to_be_visible()
+    click("Сеть связей")
+    expect(page.get_by_role("heading", name="Сеть связей", exact=True)).to_be_visible()
     click("Вписать")
     assert page.locator(".netcanvas").evaluate("el => el.scrollWidth <= el.clientWidth + 1"), "Network fit"
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), "Page overflow on mobile"
@@ -120,6 +121,7 @@ def verify(playwright, url, tmp):
     print("PASS: add, cross-panel link, collision, relocation, reload, rejected import, JSON roundtrip, offline HTML roundtrip, offline edit and re-export, mobile navigation")
     verify_wiring(browser, url, tmp)
     verify_studio(browser, url, tmp)
+    verify_diagrams(browser, url, tmp)
     browser.close()
 
 
@@ -173,7 +175,7 @@ def verify_wiring(browser, url, tmp):
     route = next(l for l in draft()["links"] if l["id"]==link["id"])["wires"][0]["routes"]["main"]
     assert len(route)==1, route
 
-    button("Сеть дома").click()
+    button("Сеть связей").click()
     drag_pin("q1:out", "sa1:a")
     dlg.get_by_label("Обозначение провода").fill("W-сеть")
     button("Сохранить провод").click()
@@ -233,7 +235,7 @@ def verify_studio(browser, url, tmp):
     errors = []
     page.on("pageerror", lambda err: errors.append(str(err)))
     page.goto(url)
-    version = page.get_by_role("button", name="Версия студии 2.1.0 · выбрать проект", exact=True)
+    version = page.get_by_role("button", name="Версия студии 2.2.0 · выбрать проект", exact=True)
     dialog = page.get_by_role("dialog")
     expect(version).to_be_visible()
     expect(page.locator(".boarddrawing .drawnDevice").first).to_be_visible()

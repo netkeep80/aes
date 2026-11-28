@@ -14,7 +14,7 @@ const empty = (text,btn='') => '<div class="empty">'+esc(text)+(btn?'<div>'+btn+
 const extraAttr = (name,value) => 'data-'+name+'="'+esc(value)+'"';
 let model, page='board', boardId='', selected='', focusLink='', networkBoard='*', networkMedium='*', zoom=1, trace=false;
 let past=[], future=[], storageKey='', diskValue=null, persistState='', onSubmit=null, timer;
-const studioVersion='2.1.0', demoEdition='wiring-1';
+const studioVersion='2.2.0', demoEdition='wiring-1';
 let demoWorkspace=false, previousDraft=null;
 const pristine='<!doctype html>\n'+document.documentElement.outerHTML;
 function board(id=boardId){return model.boards.find(b=>b.id===id);}
@@ -43,11 +43,11 @@ function change(fn, base=model){
   past.push(model);if(past.length>60)past.shift();future=[];model=next;persist();normalizeUI();render();
 }
 function undo(redo=false){routeEdit=null;const from=redo?future:past,to=redo?past:future;if(!from.length)return;to.push(model);model=from.pop();persist();normalizeUI();render();}
-function nav(next){routeEdit=null;selectedWire='';clearPin();page=next;focusLink='';trace=false;document.body.classList.remove('menu');normalizeUI();render();}
+function nav(next){freeEdge='';routeEdit=null;selectedWire='';clearPin();page=next;focusLink='';trace=false;document.body.classList.remove('menu');normalizeUI();render();}
 function side(){
   let boards=model.boards.map(b=>'<button class="boardnav '+(page==='board'&&b.id===boardId?'on':'')+'" data-board="'+esc(b.id)+'">'+icon('box')+'<span>'+esc(b.name)+'<small>'+esc(b.tag)+'</small></span></button>').join('');
   return '<div class="sideheading">Проект</div>'+act('projectTitle',model.title,'house','projectcard')+
-   '<div class="sideheading">Рабочая область</div>'+[['overview','План объектов','house'],['board','Конструктор щита','rail'],['network','Сеть дома','net'],['calc','Расчёты','bolt'],['inventory','Ведомость','list']].map(([key,title,k])=>act('nav',title,k,'navbtn '+(page===key?'on':''),extraAttr('page',key))).join('')+
+   '<div class="sideheading">Рабочая область</div>'+[['overview','План объектов','house'],['board','Конструктор щита','rail'],['network','Сеть связей','net'],['calc','Расчёты','bolt'],['inventory','Ведомость','list']].map(([key,title,k])=>act('nav',title,k,'navbtn '+(page===key?'on':''),extraAttr('page',key))).join('')+
    '<div class="sideblock"><div class="sideheading">Щиты проекта '+act('addBoard','','plus','sideadd','aria-label="Добавить щит" title="Добавить щит"')+'</div>'+boards+'</div><div class="sidefoot">'+act('about','О модели','info')+'</div>';
 }
 function crumb(t){return '<div class="crumb">'+icon('house')+'<button class="workspacecrumb" data-act="studio">'+workspaceName()+'</button>'+icon('arrow')+esc(t)+'<div class="right">'+iconbtn('undo','Отменить','undo',past.length?'':'disabled')+iconbtn('redo','Повторить','redo',future.length?'':'disabled')+'</div></div>';}
@@ -120,10 +120,14 @@ function networkPage(){
   const linked=new Set(ls.flatMap(l=>[l.from.node,l.to.node]));
   const ns=model.nodes.filter(n=>linked.has(n.id)||(within(n)&&networkMedium==='*'));
   const rows=ls.map(l=>'<tr data-link="'+esc(l.id)+'" class="'+(l.id===focusLink?'selected':'')+'"><td><button class="tablebtn tag" data-link="'+esc(l.id)+'">'+esc(medium(l))+'</button></td><td>'+esc(node(l.from.node).tag+' · '+portName(l.from))+'</td><td>'+esc(node(l.to.node).tag+' · '+portName(l.to))+'</td><td>'+esc(l.label||'—')+'</td></tr>').join('');
-  return crumb('Сеть дома')+heading('Топология','Сеть дома',projectCounts(),act('addNode','Устройство','plus')+act('addLink','Связь','link','primary'))+
-  '<div class="filters"><label>Область <select id="boardfilter">'+boardOptions(networkBoard)+'</select></label><label>Линии <select id="mediumfilter">'+['*','AC','DC','CTRL','PE'].map(k=>opt(k,k==='*'?'Все типы':mediumName[k],networkMedium)).join('')+'</select></label></div>'+
-  '<div class="workspace"><section class="panel"><div class="panelhead"><h2>'+icon('net')+'Схема связей</h2><div class="actions">'+act('fit','Вписать','','fit')+act('zoomOut','−','','iconbtn','aria-label="Уменьшить"')+'<span class="micro">'+Math.round(zoom*100)+'%</span>'+act('zoomIn','+','','iconbtn','aria-label="Увеличить"')+'</div></div>'+wireDrawing(ns,ls)+'<div class="legend netlegend"><span class="tone-blue">AC</span><span class="tone-orange">DC</span><span class="tone-violet">Управление</span>'+act('trace',trace?'Снять подсветку':'Пути от устройства','net','',node()?'':'disabled')+'</div></section>'+inspector(node())+'</div>'+
-  '<section class="panel tablepanel"><div class="panelhead"><h2>Соединения <span class="count">'+ls.length+'</span></h2></div>'+(ls.length?'<div class="scroll"><table class="data"><thead><tr><th>Тип</th><th>Откуда</th><th>Куда</th><th>Кабель / метка</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty('Связей в этой области пока нет.'))+'</section>';
+  const free=netMode==='free',scene=free?freeScene(ns,ls):null,edge=scene?.edges.find(e=>e.key===freeEdge);
+  const drawing=free?'<div class="netcanvas">'+diagramSvg(scene)+'</div>':wireDrawing(ns,ls);
+  const details=edge?'<aside class="panel mapdetail"><h2>'+esc(edge.wire?'Провод':'Связь')+'</h2>'+(edge.wire?wirePalette({wire:edge.wire,link:edge.l}):act('addWireTo','Добавить провод','plus','',extraAttr('id',edge.l.id)))+routeTools('free',edge)+'</aside>':inspector(node());
+  const wireRows=scene?.edges.map(e=>'<tr><td>'+act('selectFree',e.wire?.name||'Без провода','','tablebtn tag',extraAttr('id',e.key))+'</td><td>'+esc(e.a.n.tag+' · '+(e.wire?.a||portName(e.l.from)))+'</td><td>'+esc(e.b.n.tag+' · '+(e.wire?.b||portName(e.l.to)))+'</td><td>'+esc(e.wire?coreColors[e.wire.color][0]:'—')+'</td></tr>').join('');
+  return crumb('Сеть связей')+heading('Топология','Сеть связей',projectCounts(),act('addNode','Устройство','plus')+act('addLink','Связь','link','primary'))+
+  tabs([['columns','По группам'],['free','Свободная сеть']],netMode,'networkMode')+'<div class="filters"><label>Область <select id="boardfilter">'+boardOptions(networkBoard)+'</select></label><label>Линии <select id="mediumfilter">'+['*','AC','DC','CTRL','PE'].map(k=>opt(k,k==='*'?'Все типы':mediumName[k],networkMedium)).join('')+'</select></label></div>'+
+  '<div class="workspace"><section class="panel"><div class="panelhead"><h2>'+icon('net')+'Схема связей</h2><div class="actions">'+act('fit','Вписать','','fit')+act('zoomOut','−','','iconbtn','aria-label="Уменьшить"')+'<span class="micro">'+Math.round(zoom*100)+'%</span>'+act('zoomIn','+','','iconbtn','aria-label="Увеличить"')+'</div></div>'+drawing+(free?'<div class="wirehint">Перемещайте устройства и участки проводов. Для нового провода протяните связь между клеммами.</div>':'<div class="legend netlegend"><span class="tone-blue">AC</span><span class="tone-orange">DC</span><span class="tone-violet">Управление</span>'+act('trace',trace?'Снять подсветку':'Пути от устройства','net','',node()?'':'disabled')+'</div>')+'</section>'+details+'</div>'+
+  '<section class="panel tablepanel"><div class="panelhead"><h2>'+(free?'Провода и связи':'Соединения')+' <span class="count">'+(free?scene.edges.length:ls.length)+'</span></h2></div>'+(ls.length?'<div class="scroll"><table class="data"><thead><tr><th>'+(free?'Провод':'Тип')+'</th><th>Откуда</th><th>Куда</th><th>'+(free?'Цвет жилы':'Кабель / метка')+'</th></tr></thead><tbody>'+(free?wireRows:rows)+'</tbody></table></div>':empty('Связей в этой области пока нет.'))+'</section>';
 }
 let dialogLifetime=new AbortController();
 function modal(title,body,footer='',submit=null){
@@ -165,7 +169,7 @@ function nodeForm(edit=false,at=null){
     '<fieldset class="customports wide"><legend>Порты устройства</legend><div class="portlist">'+Object.entries(n?.kind==='custom'?n.ports:kinds.custom[4]).map(([k,p])=>portRow(k,p)).join('')+'</div>'+act('addPort','Порт','plus')+'</fieldset>'+
     field('Примечание', '<textarea name="note" maxlength="500" rows="2">'+esc(n?.note||'')+'</textarea>',true)+'</div>',commitButtons(edit?'Применить':'Добавить',edit?'deleteNode':''),()=>{
       const boardVal=val('board'), rec={id:n?.id||id(),kind:val('kind'),tag:val('tag').trim(),name:val('name').trim(),rating:val('rating').trim(),note:val('note').trim(),width:+val('width'),place:boardVal?{board:boardVal,row:+val('row'),slot:+val('slot')}:null};
-      rec.location=val('location').trim();rec.area=val('area');rec.power=readPower();if(n?.xy)rec.xy=n.xy;
+      rec.location=val('location').trim();rec.area=val('area');rec.power=readPower();if(n?.xy)rec.xy=n.xy;if(n?.freeXY)rec.freeXY=n.freeXY;
       if(rec.kind==='custom'){
         rec.ports=Object.create(null);
         for(const row of document.querySelectorAll('.portrow')){
@@ -263,7 +267,7 @@ async function readImport(file){
   finally{$('#importfile').value='';}
 }
 function showNode(target){
-  const n=node(target);if(!n)return;routeEdit=null;selectedWire='';selected=n.id;focusLink='';
+  const n=node(target);if(!n)return;freeEdge='';routeEdit=null;selectedWire='';selected=n.id;focusLink='';
   if(page==='inventory'){nodeForm(true);return;}
   if(page==='board' && !n.place){networkBoard='*';networkMedium='*';nav('network');return;}
   if(page==='board')boardId=n.place.board;
@@ -367,6 +371,7 @@ async function start(){
   }else{
     openWorkspace();
   }
+  if(location.hash==='#plan')page='overview';
+  if(location.hash==='#network-free'){page='network';netMode='free';}
   normalizeUI();render();
 }
-

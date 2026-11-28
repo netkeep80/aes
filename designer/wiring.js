@@ -1,6 +1,6 @@
 
 let boardFocus=false, boardScale='fit';
-let wiringGesture=null, pickedPort=null, selectedWire='', mapDrag=null;
+let wiringGesture=null, pickedPort=null, selectedWire='';
 const circuitInk={AC:'#5680a2',DC:'#b37938',CTRL:'#9271a0',PE:'#418045'};
 function svgText(x,y,value,cls='',more=''){return '<text x="'+x+'" y="'+y+'" class="'+cls+'" '+more+'>'+esc(value)+'</text>';}
 function clipped(s,n){return s.length>n?s.slice(0,n-1)+'…':s;}
@@ -276,7 +276,7 @@ document.addEventListener('pointerup',e=>{
   if(Math.hypot(e.clientX-g.cx,e.clientY-g.cy)<5){choosePin(g.pin);return;}
   clearPin();if(end)completePins(g.pin.dataset.pin,end.dataset.pin);else message('Отпустите провод на клемме назначения.');
 });
-document.addEventListener('pointercancel',e=>{if(wiringGesture?.pointer===e.pointerId)cancelWiringGesture();mapDrag=null;});
+document.addEventListener('pointercancel',e=>{if(wiringGesture?.pointer===e.pointerId)cancelWiringGesture();});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){cancelWiringGesture();clearPin();if(routeEdit){routeEdit=null;render();}}
   if(!routeEdit&&['Enter',' '].includes(e.key)&&e.target.matches('.drawedge[data-wire]')){e.preventDefault();pickWire(e.target);return;}

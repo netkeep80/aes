@@ -24,10 +24,17 @@ jobs:
       - name: Test project model and electrical calculations
         run: node designer/physical.test.cjs
       - name: Test project editing and offline round trips in Chrome
+        env:
+          AES_VISUAL_DIR: ${{ runner.temp }}/aes-visual-check
         run: |
           python3 -m venv "${RUNNER_TEMP}/aes-tests"
           "${RUNNER_TEMP}/aes-tests/bin/pip" install 'playwright==1.56.0'
           "${RUNNER_TEMP}/aes-tests/bin/python" designer/smoke.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studio-visual-check
+          path: ${{ runner.temp }}/aes-visual-check
+          if-no-files-found: error
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

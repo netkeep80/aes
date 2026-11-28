@@ -40,6 +40,18 @@ function checkPhysical(m,identity){
     assert(!item.area||areas.has(item.area),'Область размещения отсутствует.');
     assert(!item.xy||pointOK(item.xy),'Некорректные координаты на плане.');
   }
+  for(const n of m.nodes)assert(n.freeXY==null||pointOK(n.freeXY),'Проверьте положение устройства в свободной сети.');
+  if(m.diagramRoutes!=null){
+    assert(Array.isArray(m.diagramRoutes)&&m.diagramRoutes.length<=100000,'Повреждены настройки трасс.');
+    const seen=new Set();
+    for(const r of m.diagramRoutes){
+      assert(r&&['free','panels','buildings'].includes(r.view)&&str(r.key,400),'Некорректная трасса схемы.');
+      const key=JSON.stringify([r.view,r.key]);assert(!seen.has(key),'Повторный идентификатор трассы.');seen.add(key);
+      assert(r.color==null||/^#[a-f0-9]{6}$/i.test(r.color),'Некорректный цвет трассы.');
+      if(r.points!=null)assert(Array.isArray(r.points)&&r.points.length>=2&&r.points.length<=256&&r.points.every((p,i)=>
+        p&&finiteRange(p.x,0,51000)&&finiteRange(p.y,0,51000)&&(!i||p.x===r.points[i-1].x||p.y===r.points[i-1].y)),'Трасса должна содержать горизонтальные и вертикальные участки.');
+    }
+  }
   for(const n of m.nodes)if(n.power){
     const p=n.power;assert(['source','load'].includes(p.role)&&own(serviceModes,p.mode)&&positive(p.watts)&&positive(p.volts)&&finiteRange(p.pf,0.01,1),'Проверьте электрические данные устройства.');
   }
