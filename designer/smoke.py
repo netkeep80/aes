@@ -190,7 +190,7 @@ def verify_wiring(browser, url, tmp):
     page.mouse.up()
     moved = next(a for a in draft()["areas"] if a["id"]=="house")["xy"]
     assert moved["x"] > 35 and moved["y"] > 45
-    bundle = page.locator("[data-bundle]").first
+    bundle = page.locator("[data-caption-key]").first
     bundle.locator("rect").click()
     expect(page.locator(".mapdetail")).to_contain_text("Кабелей")
     button("Ведомость").click()

@@ -97,7 +97,7 @@ function edgeCaption(edge,scene,occupied){
   const {x,y,r,mid}=best;occupied.push(r);
   return '<g class="routecaption">'+(samePoint(mid,{x,y})?'':'<path d="'+linePath([mid,{x,y}])+'" stroke="#9baba1" fill="none"/>')+'<rect x="'+r.x+'" y="'+r.y+'" width="'+w+'" height="'+h+'" rx="5"/>'+svgText(x,y+3,edge.label,'slotlabel','text-anchor="middle"')+'</g>';
 }
-function pathMarkup(edge,scene,occupied){
+function pathMarkup(edge,scene){
   const plan=scene.view!=='free',selected=edge.key===(plan?chosenBundle:freeEdge);
   const attr=(plan?'data-bundle':'data-free-edge')+'="'+esc(edge.key)+'"';
   if(!edge.path.length)return '';
@@ -108,10 +108,10 @@ function pathMarkup(edge,scene,occupied){
     (selected?'<path class="routehalo" d="'+d+'"/>':'')+
     '<path class="routeink" d="'+d+'" stroke="'+ink+'" stroke-width="'+width+'" '+(!plan&&!edge.wire?'stroke-dasharray="4 4"':'')+'/>'+
     (striped?'<path d="'+d+'" class="routeink" stroke="#edd84c" stroke-width="1.7" stroke-dasharray="6 4"/>':'')+
-    segments+(plan?edgeCaption(edge,scene,occupied):'')+'</g>';
+    segments+'</g>';
 }
 function planCard(g){
-  return '<g data-mapid="'+esc(g.id)+'" class="mapcard" tabindex="0" role="button" aria-label="'+esc(g.title)+'"><rect x="'+g.x+'" y="'+g.y+'" width="'+g.w+'" height="'+g.h+'" rx="8" fill="'+(overviewSelection===g.id?'#fff0db':'#fff')+'" stroke="#879d91"/>'+svgText(g.x+12,g.y+17,g.type.toUpperCase(),'slotlabel')+svgText(g.x+12,g.y+36,clipped(g.title,24),'drawtag')+svgText(g.x+12,g.y+51,amount(g.count,'устройство','устройства','устройств'),'slotlabel')+'</g>';
+  return '<g data-mapid="'+esc(g.id)+'" class="mapcard" tabindex="0" role="button" aria-label="'+esc(g.title)+'"><title>'+esc(g.title)+'</title><rect x="'+g.x+'" y="'+g.y+'" width="'+g.w+'" height="'+g.h+'" rx="8" fill="'+(overviewSelection===g.id?'#fff0db':'#fff')+'" stroke="#879d91"/>'+svgText(g.x+12,g.y+17,g.type.toUpperCase(),'slotlabel')+svgText(g.x+12,g.y+36,clipped(g.title,Math.floor((g.w-24)/7.4)),'drawtag')+svgText(g.x+12,g.y+51,amount(g.count,'устройство','устройства','устройств'),'slotlabel')+'</g>';
 }
 function diagramSvg(scene){
   const plan=scene.view!=='free',labels=[],settings=new Map((model.diagramRoutes||[]).filter(r=>r.view===scene.view).map(r=>[r.key,r]));
@@ -125,11 +125,12 @@ function diagramSvg(scene){
   });
   const chosen=plan?chosenBundle:freeEdge;
   const sorted=[...scene.edges].sort((a,b)=>Number(a.key===chosen)-Number(b.key===chosen));
-  const edges=sorted.map(edge=>pathMarkup(edge,scene,labels)).join('');
+  const edges=sorted.map(edge=>pathMarkup(edge,scene)).join('');
+  const captions=plan?scene.edges.map(edge=>'<g data-caption-key="'+esc(edge.key)+'">'+edgeCaption(edge,scene,labels)+'</g>').join(''):'';
   const cards=scene.boxes.map(b=>plan?planCard(b):drawBox(b,false)).join('');
   const pins=plan?'':scene.boxes.map(drawPins).join('');
   diagramScene=scene;
-  return '<svg class="orthoSvg '+(plan?'mapsvg':'wiringsvg')+'" viewBox="0 0 '+width+' '+height+'" width="'+width*(plan?1:zoom)+'" height="'+height*(plan?1:zoom)+'" aria-label="'+(plan?'План объектов':'Свободная сеть связей')+'">'+edges+cards+pins+'</svg>';
+  return '<svg class="orthoSvg '+(plan?'mapsvg':'wiringsvg')+'" viewBox="0 0 '+width+' '+height+'" width="'+width*(plan?1:zoom)+'" height="'+height*(plan?1:zoom)+'" aria-label="'+(plan?'План объектов':'Свободная сеть связей')+'">'+edges+captions+cards+pins+'</svg>';
 }
 function routeTools(view,edge){
   const saved=diagramSettings(view,edge.key);
@@ -184,12 +185,14 @@ function closestDiagramSegment(path,p){
 }
 document.addEventListener('pointerdown',e=>{
   const svg=e.target.closest('.orthoSvg');if(!svg||e.button!==0||diagramDrag||e.target.closest('[data-pin]'))return;
-  const line=e.target.closest('.routeedge'),cardEl=e.target.closest('[data-mapid],[data-node]');
+  const line=e.target.closest('.routeedge,[data-caption-key]'),cardEl=e.target.closest('[data-mapid],[data-node]');
   if(!line&&!cardEl)return;
   const scene=diagramScene,start=svgPoint(svg,e),g={scene,svg,start,pointer:e.pointerId};
   if(line){
-    const group=line;
-    g.edge=scene.edges.find(edge=>edge.key===(group.dataset.bundle||group.dataset.freeEdge));
+    const key=line.dataset.captionKey||line.dataset.bundle||line.dataset.freeEdge;
+    const group=line.matches('.routeedge')?line:[...svg.querySelectorAll('.routeedge')].find(el=>el.dataset.bundle===key);
+    g.label=[...svg.querySelectorAll('[data-caption-key]')].find(el=>el.dataset.captionKey===key);
+    g.edge=scene.edges.find(edge=>edge.key===key);
     const hit=e.target.closest('[data-segment]');
     g.index=hit?Number(hit.dataset.segment):closestDiagramSegment(g.edge.path,start);g.group=group;
   }else{g.card=scene.boxes.find(box=>box.id===(cardEl.dataset.mapid||cardEl.dataset.node));g.el=cardEl;}
@@ -204,7 +207,7 @@ document.addEventListener('pointermove',e=>{
     const a=g.edge.path[g.index],b=g.edge.path[g.index+1];
     const path=slideSegment(g.edge.path,g.index,a.y===b.y?dy:dx,g.scene.boxes);
     if(path){g.points=path;g.group.querySelectorAll('.routeink,.routehalo').forEach(el=>el.setAttribute('d',linePath(path)));
-      g.group.querySelector('.routecaption')?.setAttribute('visibility','hidden');}
+      g.label?.setAttribute('visibility','hidden');}
   }else{
     const c=g.card,pos={x:Math.max(25,Math.min(50000,c.x+dx)),y:Math.max(25,Math.min(50000,c.y+dy))};
     if((g.scene.all||g.scene.boxes).some(b=>b.id!==c.id&&overlapCard({...c,...pos},b,24)))return;
@@ -226,6 +229,6 @@ document.addEventListener('keydown',e=>{
   if(edge&&['Enter',' '].includes(e.key)){e.preventDefault();selectDiagramEdge(edge.dataset.bundle||edge.dataset.freeEdge);}
 });
 document.addEventListener('click',e=>{
-  const edge=e.target.closest('.routeedge');
-  if(edge)selectDiagramEdge(edge.dataset.bundle||edge.dataset.freeEdge);
+  const edge=e.target.closest('.routeedge,[data-caption-key]');
+  if(edge)selectDiagramEdge(edge.dataset.captionKey||edge.dataset.bundle||edge.dataset.freeEdge);
 });

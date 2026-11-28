@@ -114,6 +114,7 @@ def verify_diagrams(browser, url, tmp):
     btn("W-FREE").click()
     p.locator(".mapdetail").get_by_role("button",name="Фиолетовый",exact=True).click()
     p.locator(".orthoSvg").scroll_into_view_if_needed()
+    expect(p.locator("#toast")).to_be_empty(timeout=6500)
     capture("02-free-network")
     before=p.evaluate("JSON.stringify(model)")
     btn("Сохранить").click()
