@@ -68,29 +68,34 @@ function freeScene(nodes,links,preview){
   for(const l of links){
     const a=byBox.get(l.from.node),b=byBox.get(l.to.node);if(!a||!b)continue;
     const lead=(box,end)=>{const pin=box.pins.get(end.port);return {x:pin.x,y:pin.y,dx:0,dy:pin.side};};
-    for(const wire of l.wires.length?l.wires:[null]){
+    const conductors=l.wires.length?l.wires:[null];
+    for(const [index,wire] of conductors.entries()){
       const key=(wire?'w:':'l:')+(wire?.id||l.id);
-      edges.push({key,a,b,l,wire,start:lead(a,l.from),end:lead(b,l.to),color:wire?coreColors[wire.color][1]:'#82928a',
+      edges.push({key,a,b,l,wire,spread:(index-(conductors.length-1)/2)*Math.min(8,64/conductors.length),start:lead(a,l.from),end:lead(b,l.to),color:wire?coreColors[wire.color][1]:'#82928a',
         title:(wire?wire.name:'Функциональная связь')+' · '+a.n.tag+' → '+b.n.tag});
     }
   }
   return {view:'free',boxes,edges,all,preview:p=>freeScene(nodes,links,p)};
 }
 function edgeCaption(edge,scene,occupied){
-  const candidates=[];
+  let best=null;
+  const w=Math.max(54,edge.label.length*6+12),h=18;
   for(let i=1;i<edge.path.length;i++){
-    const a=edge.path[i-1],b=edge.path[i],len=Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
-    for(const fraction of [.5,.32,.68]){
-      const x=a.x+(b.x-a.x)*fraction,y=a.y+(b.y-a.y)*fraction;
-      const r={x:x-38,y:y-9,w:76,h:18};
-      if(!scene.boxes.some(box=>overlapCard(r,box,2))&&!occupied.some(box=>overlapCard(r,box,3)))
-        candidates.push({x,y,r,score:len+(a.y===b.y?32:0)-Math.abs(.5-fraction)*30});
+    const a=edge.path[i-1],b=edge.path[i],horizontal=a.y===b.y,len=Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+    for(const t of [.5,.32,.68]){
+      const mid={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
+      for(const offset of [0,16,-16,32,-32,48,-48,64,-64]){
+        const x=mid.x+(horizontal?0:offset),y=mid.y+(horizontal?offset:0),r={x:x-w/2,y:y-h/2,w,h};
+        if(r.x<0||r.y<0||scene.boxes.some(box=>overlapCard(r,box,2))||occupied.some(box=>overlapCard(r,box,3))||!segmentClear(mid,{x,y},scene.boxes))continue;
+        const score=Math.min(len,180)+(horizontal?15:0)-Math.abs(t-.5)*30-Math.abs(offset)*5;
+        if(!best||score>best.score)best={r,mid,x,y,score};
+        break;
+      }
     }
   }
-  candidates.sort((a,b)=>b.score-a.score);
-  if(!candidates.length)return '';
-  const {x,y,r}=candidates[0];occupied.push(r);
-  return '<g class="routecaption"><rect x="'+r.x+'" y="'+r.y+'" width="76" height="18" rx="5"/>'+svgText(x,y+3,edge.label,'slotlabel','text-anchor="middle"')+'</g>';
+  if(!best)return '';
+  const {x,y,r,mid}=best;occupied.push(r);
+  return '<g class="routecaption">'+(samePoint(mid,{x,y})?'':'<path d="'+linePath([mid,{x,y}])+'" stroke="#9baba1" fill="none"/>')+'<rect x="'+r.x+'" y="'+r.y+'" width="'+w+'" height="'+h+'" rx="5"/>'+svgText(x,y+3,edge.label,'slotlabel','text-anchor="middle"')+'</g>';
 }
 function pathMarkup(edge,scene,occupied){
   const plan=scene.view!=='free',selected=edge.key===(plan?chosenBundle:freeEdge);
@@ -114,7 +119,7 @@ function diagramSvg(scene){
   for(const b of scene.boxes){width=Math.max(width,b.x+b.w+65);height=Math.max(height,b.y+b.h+65);}
   scene.edges.forEach((edge,i)=>{
     const record=settings.get(edge.key);
-    edge.path=orthogonalRoute(edge.start,edge.end,scene.boxes,record?.points,i);
+    edge.path=orthogonalRoute(edge.start,edge.end,scene.boxes,record?.points,i,edge.spread||0);
     edge.ink=record?.color||edge.color;
     for(const p of edge.path){width=Math.max(width,p.x+35);height=Math.max(height,p.y+35);}
   });

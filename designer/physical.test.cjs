@@ -61,3 +61,8 @@ ok(direct.length===2,'straight default');
 const jog=slideSegment(direct,0,25,rects.filter((_,i)=>i!==1));ok(jog.length===6,'both terminal doglegs');
 ok(!slideSegment(direct,0,25,[...rects,{x:160,y:148,w:50,h:50}]),'invalid drop');
 console.log('PASS orthogonal detours, all segment indices, terminal doglegs, blocked routes and reconnection');
+const upper={x:40,y:30,w:100,h:50},lower={x:40,y:210,w:100,h:50};
+const plug={x:90,y:80,dx:0,dy:1},socket={x:90,y:210,dx:0,dy:-1};
+const parallelCores=[-8,0,8].map((spread,i)=>orthogonalRoute(plug,socket,[upper,lower],null,i,spread));
+parallelCores.forEach(p=>verifyPath(p,[upper,lower]));
+ok(new Set(parallelCores.map(p=>JSON.stringify(p))).size===3,'parallel cores share a trace');

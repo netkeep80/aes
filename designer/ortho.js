@@ -78,7 +78,7 @@ function corridorPath(a,b,boxes){
   }
   return null;
 }
-function orthogonalRoute(a,b,boxes,saved,lane=0){
+function orthogonalRoute(a,b,boxes,saved,lane=0,spread=0){
   if(saved?.length&&samePoint(a,saved[0])&&samePoint(b,saved.at(-1))&&clearPath(saved,boxes))return saved;
   const lead=(p,d)=>({x:p.x+p.dx*d,y:p.y+p.dy*d});
   for(const margin of [9+lane%5*3,4,1]){
@@ -86,14 +86,19 @@ function orthogonalRoute(a,b,boxes,saved,lane=0){
     if(!segmentClear(a,u,boxes)||!segmentClear(b,v,boxes))continue;
     const obstacles=boxes.map(r=>({x:r.x-margin,y:r.y-margin,w:r.w+2*margin,h:r.h+2*margin}));
     const pins=(saved||[]).slice(1,-1).filter(p=>!obstacles.some(r=>p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h));
-    const run=[a,u];let current=u,valid=true;
-    for(const next of [...pins,v]){
+    // Separate sibling conductors at shared terminals before entering the main corridor.
+    const offset=(p,port)=>({x:p.x+(port.dy?spread:0),y:p.y+(port.dx?spread:0)});
+    const first=offset(u,a),last=offset(v,b);
+    if(!segmentClear(u,first,obstacles)||!segmentClear(v,last,obstacles))continue;
+    const run=[a,u,first];let current=first,valid=true;
+    for(const next of [...pins,last]){
       const part=corridorPath(current,next,obstacles);
       if(!part){valid=false;break;}run.push(...part.slice(1));current=next;
     }
-    if(valid){const route=cleanPath([...run,b]);if(clearPath(route,boxes))return route;}
+    if(valid){const route=cleanPath([...run,v,b]);if(clearPath(route,boxes))return route;}
   }
-  return saved?.length?orthogonalRoute(a,b,boxes,null,lane):[];
+  if(saved?.length)return orthogonalRoute(a,b,boxes,null,lane,spread);
+  return spread?orthogonalRoute(a,b,boxes,null,lane,0):[];
 }
 // Slide the segment perpendicular to itself. Keep both terminals fixed, inserting
 // outward doglegs when the first, last, or only segment is moved.
