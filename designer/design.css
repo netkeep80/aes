@@ -64,3 +64,4 @@ a.launch:hover{background:#f7f5ed;border-color:#a36b2a}
 .diagramtools{display:grid;justify-items:stretch;gap:8px;border-block:1px solid var(--line);padding:12px 0;margin:10px 0;font-size:12px}
 .diagramtools>span{color:var(--mute)}.diagramtools label{display:flex;align-items:center;justify-content:space-between}
 .diagramtools input{width:44px;height:28px;padding:2px;border:1px solid var(--line);cursor:pointer}
+.routecaption text,.routecaption path{pointer-events:none}
